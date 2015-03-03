@@ -92,3 +92,34 @@ Fixpoint behavior {i o} (C : Circuit i o) : BoolVect i -> BoolVect o :=
     | par _ _ _ _ c1 c2 => fun bv => append (behavior c1 (bv_plus_left bv))
                                             (behavior c2 (bv_plus_right bv))
   end.
+
+Theorem area_comp: forall (m n : nat) (A : Circuit m n) (B : Circuit n m),
+  area (comp A B) = area (comp B A).
+Proof. Admitted.
+
+Theorem delay_comp: forall (m n : nat) (A : Circuit m n) (B : Circuit n m),
+  delay (comp A B) = delay (comp B A).
+Proof. Admitted.
+
+Theorem area_par: forall (m n : nat) (A : Circuit m n) (B : Circuit n m),
+  area (par A B) = area (par B A).
+Proof. Admitted.
+
+Theorem delay_par: forall (m n : nat) (A : Circuit m n) (B : Circuit n m),
+  delay (par A B) = delay (par B A).
+Proof. Admitted.
+
+Theorem comp_par_area: forall (m n o p q r: nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit p q) (D : Circuit q r),
+  area (par (comp A B) (comp C D)) = area (comp (par A C) (par B D)).
+Proof. Admitted.
+
+Theorem comp_par_delay: forall (m n o p q r: nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit p q) (D : Circuit q r),
+  delay (par (comp A B) (comp C D)) = delay (comp (par A C) (par B D)).
+Proof. Admitted.
+
+Theorem comp_par: forall (m n o p q r: nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit p q) (D : Circuit q r),
+  behavior (par (comp A B) (comp C D)) = behavior (comp (par A C) (par B D)).
+Proof. Admitted.
+
+Theorem diff_delay: behavior nand = behavior (comp and inv) \/ area nand <> area (comp and inv).
+Proof. Admitted.
