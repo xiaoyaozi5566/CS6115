@@ -19,6 +19,7 @@ Inductive Circuit : nat -> nat -> Type :=
   | high : Circuit 0 1
   | low  : Circuit 0 1
   | wire : Circuit 1 1
+  | split: Circuit 1 2
   | inv  : Circuit 1 1
   | buf  : Circuit 1 1
   | and  : Circuit 2 1
@@ -37,6 +38,7 @@ Fixpoint area {i o} (C : Circuit i o) : nat :=
     | high => 0
     | low  => 0
     | wire => 0
+	| split=> 0
     | inv  => 108
     | buf  => 144
     | and  => 216
@@ -56,6 +58,7 @@ Fixpoint delay {i o} (C : Circuit i o) : nat :=
     | high => 0
     | low  => 0
     | wire => 0
+	| split=> 0
     | inv  => 23
     | buf  => 66
     | and  => 53
@@ -89,6 +92,7 @@ Fixpoint behavior {i o} (C : Circuit i o) : BoolVect i -> BoolVect o :=
     | high => fun _ => [true]
     | low  => fun _ => [false]
     | wire => fun bv => bv
+	| split=> fun bv => [bv[@ F1]; bv[@ F1]]
     | inv  => fun bv => map negb bv
     | buf  => fun bv => bv
     | and  => fun bv => [fold_right andb bv true]
@@ -149,7 +153,7 @@ Theorem area_comp_ident_l : forall (m n : nat) (A : Circuit m n),
   area (comp (par_wire m) A) = area A.
 Proof. Admitted.
 
-Theorem area_comp_ident_R : forall (m n : nat) (A : Circuit m n),
+Theorem area_comp_ident_r : forall (m n : nat) (A : Circuit m n),
   area (comp A (par_wire n)) = area A.
 Proof. Admitted.
 
@@ -157,7 +161,7 @@ Theorem area_par_ident_l : forall (m n : nat) (A : Circuit m n),
   area (par none A) = area A.
 Proof. Admitted.
 
-Theorem area_par_ident_R : forall (m n : nat) (A : Circuit m n),
+Theorem area_par_ident_r : forall (m n : nat) (A : Circuit m n),
   area (par A none) = area A.
 Proof. Admitted.
 
@@ -165,7 +169,7 @@ Theorem delay_comp_ident_l : forall (m n : nat) (A : Circuit m n),
   delay (comp (par_wire m) A) = delay A.
 Proof. Admitted.
 
-Theorem delay_comp_ident_R : forall (m n : nat) (A : Circuit m n),
+Theorem delay_comp_ident_r : forall (m n : nat) (A : Circuit m n),
   delay (comp A (par_wire n)) = delay A.
 Proof. Admitted.
 
@@ -173,7 +177,7 @@ Theorem delay_par_ident_l : forall (m n : nat) (A : Circuit m n),
   delay (par none A) = delay A.
 Proof. Admitted.
 
-Theorem delay_par_ident_R : forall (m n : nat) (A : Circuit m n),
+Theorem delay_par_ident_r : forall (m n : nat) (A : Circuit m n),
   delay (par A none) = delay A.
 Proof. Admitted.
 
@@ -181,7 +185,7 @@ Theorem behavior_comp_ident_l : forall (m n : nat) (A : Circuit m n),
   behavior (comp (par_wire m) A) = behavior A.
 Proof. Admitted.
 
-Theorem behavior_comp_ident_R : forall (m n : nat) (A : Circuit m n),
+Theorem behavior_comp_ident_r : forall (m n : nat) (A : Circuit m n),
   behavior (comp A (par_wire n)) = behavior A.
 Proof. Admitted.
 
@@ -189,7 +193,7 @@ Theorem behavior_par_ident_l : forall (m n : nat) (A : Circuit m n),
   behavior (par none A) = behavior A.
 Proof. Admitted.
 
-Theorem behavior_par_ident_R : forall (m n : nat) (A : Circuit m n),
+Theorem behavior_par_ident_r : forall (m n : nat) (A : Circuit m n),
   behavior (par A none) = eq_rect_r (fun x => BoolVect x -> _)
                                     (eq_rect_r (fun x => _ -> BoolVect x)
                                                (behavior A)
