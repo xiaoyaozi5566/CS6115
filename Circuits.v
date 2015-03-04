@@ -9,6 +9,7 @@ Require Import Fin Vector.
 Import VectorNotations.
 
 Require Import Plus.
+Require Import Arith.
 
 
 
@@ -131,11 +132,46 @@ Qed.
 
 Theorem delay_comp_assoc : forall (m n o p : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit o p),
   delay (comp A (comp B C)) = delay (comp (comp A B) C).
-Proof. Admitted.
+Proof. 
+  intros m n o p A B C.
+  simpl.
+  rewrite plus_assoc.
+  reflexivity.
+Qed.
 
 Theorem delay_par_assoc : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit o p) (C : Circuit q r),
   delay (par A (par B C)) = delay (par (par A B) C).
-Proof. Admitted.
+Proof.
+  intros m n o p q r A B C.
+  simpl.
+  destruct (le_lt_dec (delay B) (delay C)).
+    rewrite (max_r (delay B) (delay C)).
+    destruct (le_lt_dec (delay A) (delay B)).
+      rewrite (max_r (delay A) (delay B)).
+      rewrite (max_r (delay A) (delay C)).
+      rewrite (max_r (delay B) (delay C)).
+      reflexivity. apply l. apply le_trans with (delay B). apply l0. apply l. apply l0.
+      destruct (le_lt_dec (delay A) (delay C)).
+        rewrite (max_r (delay A) (delay C)).
+        rewrite (max_l (delay A) (delay B)).
+        rewrite (max_r (delay A) (delay C)).
+        reflexivity. apply l1. apply lt_le_weak in l0. apply l0. apply l1.
+        rewrite (max_l (delay A) (delay C)).
+        rewrite (max_l (delay A) (delay B)).
+        rewrite (max_l (delay A) (delay C)).
+        reflexivity. apply lt_le_weak in l1. apply l1. apply lt_le_weak in l0. apply l0. 
+        apply lt_le_weak in l1. apply l1. apply l.
+    rewrite (max_l (delay B) (delay C)).
+    destruct (le_lt_dec (delay A) (delay B)).
+      rewrite (max_r (delay A) (delay B)).
+      rewrite (max_l (delay B) (delay C)).
+      reflexivity. apply lt_le_weak in l. apply l. apply l0.
+      rewrite (max_l (delay A) (delay B)).
+      rewrite (max_l (delay A) (delay C)).
+      reflexivity. apply lt_le_weak in l. apply lt_le_weak in l0. apply le_trans with (delay B). apply l. apply l0.
+      apply lt_le_weak in l0. apply l0. apply lt_le_weak in l. apply l.
+Qed.
+  
 
 Theorem behavior_comp_assoc : forall (m n o p : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit o p),
   behavior (comp A (comp B C)) = behavior (comp (comp A B) C).
@@ -219,19 +255,37 @@ Proof. Admitted.
 
 Theorem area_comp_comm : forall (m n : nat) (A : Circuit m n) (B : Circuit n m),
   area (comp A B) = area (comp B A).
-Proof. Admitted.
+Proof.
+  intros m n A B.
+  simpl.
+  apply plus_comm.
+Qed.
 
 Theorem area_par_comm : forall (m n o p : nat) (A : Circuit m n) (B : Circuit o p),
   area (par A B) = area (par B A).
-Proof. Admitted.
+Proof.
+  intros m n o p A B.
+  simpl.
+  apply plus_comm.
+Qed.
 
 Theorem delay_comp_comm : forall (m n : nat) (A : Circuit m n) (B : Circuit n m),
   delay (comp A B) = delay (comp B A).
-Proof. Admitted.
+Proof.
+  intros m n A B.
+  simpl.
+  apply plus_comm.
+Qed.
 
 Theorem delay_par_comm : forall (m n o p : nat) (A : Circuit m n) (B : Circuit o p),
   delay (par A B) = delay (par B A).
-Proof. Admitted.
+Proof. 
+  intros m n o p A B.
+  simpl.
+  destruct (le_lt_dec (delay A) (delay B)).
+  rewrite max_r. rewrite max_l. reflexivity. apply l. apply l.
+  rewrite max_l. rewrite max_r. reflexivity. apply lt_le_weak. apply l. apply lt_le_weak. apply l.
+Qed.
 
 
 
