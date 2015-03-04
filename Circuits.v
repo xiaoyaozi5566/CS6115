@@ -38,7 +38,7 @@ Fixpoint area {i o} (C : Circuit i o) : nat :=
     | high => 0
     | low  => 0
     | wire => 0
-	| split=> 0
+    | split=> 0
     | inv  => 108
     | buf  => 144
     | and  => 216
@@ -58,7 +58,7 @@ Fixpoint delay {i o} (C : Circuit i o) : nat :=
     | high => 0
     | low  => 0
     | wire => 0
-	| split=> 0
+    | split=> 0
     | inv  => 23
     | buf  => 66
     | and  => 53
@@ -92,7 +92,7 @@ Fixpoint behavior {i o} (C : Circuit i o) : BoolVect i -> BoolVect o :=
     | high => fun _ => [true]
     | low  => fun _ => [false]
     | wire => fun bv => bv
-	| split=> fun bv => [bv[@ F1]; bv[@ F1]]
+    | split=> fun bv => [bv[@ F1]; bv[@ F1]]
     | inv  => fun bv => map negb bv
     | buf  => fun bv => bv
     | and  => fun bv => [fold_right andb bv true]
@@ -113,11 +113,21 @@ Fixpoint behavior {i o} (C : Circuit i o) : BoolVect i -> BoolVect o :=
 
 Theorem area_comp_assoc : forall (m n o p : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit o p),
   area (comp A (comp B C)) = area (comp (comp A B) C).
-Proof. Admitted.
+Proof.
+  intros m n o p A B C.
+  simpl.
+  rewrite plus_assoc.
+  reflexivity.
+Qed.
 
 Theorem area_par_assoc : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit o p) (C : Circuit q r),
   area (par A (par B C)) = area (par (par A B) C).
-Proof. Admitted.
+Proof.
+  intros m n o p q r A B C.
+  simpl.
+  rewrite plus_assoc.
+  reflexivity.
+Qed.
 
 Theorem delay_comp_assoc : forall (m n o p : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit o p),
   delay (comp A (comp B C)) = delay (comp (comp A B) C).
@@ -129,7 +139,9 @@ Proof. Admitted.
 
 Theorem behavior_comp_assoc : forall (m n o p : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit o p),
   behavior (comp A (comp B C)) = behavior (comp (comp A B) C).
-Proof. Admitted.
+Proof.
+  reflexivity.
+Qed.
 
 Theorem behavior_par_assoc : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit o p) (C : Circuit q r),
   behavior (par A (par B C)) = eq_rect_r (fun x => BoolVect x -> _)
@@ -231,6 +243,26 @@ Proof. Admitted.
 
 Theorem delay_distr_r : forall (m n o p q : nat) (B : Circuit m n) (C : Circuit o p) (A : Circuit (n + p) q),
   delay (comp (par B C) A) = delay (par (comp (par B (par_wire p)) A) (comp (par (par_wire n) C) A)).
+Proof. Admitted.
+
+
+
+(* ~~~~~~~ ANNIHILATION ~~~~~~~ *)
+
+Theorem area_anni_l : forall (n : nat) (A : Circuit 0 n),
+  area (comp none A) = area none.
+Proof. Admitted.
+
+Theorem area_anni_r : forall (n : nat) (A : Circuit n 0),
+  area (comp A none) = area none.
+Proof. Admitted.
+
+Theorem delay_anni_l : forall (n : nat) (A : Circuit 0 n),
+  delay (comp none A) = area none.
+Proof. Admitted.
+
+Theorem delay_anni_r : forall (n : nat) (A : Circuit n 0),
+  delay (comp A none) = area none.
 Proof. Admitted.
 
 
