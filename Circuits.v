@@ -5,8 +5,10 @@
 
 
 
-Require Import Fin Vector.
+Require Import Vector.
 Import VectorNotations.
+
+Require Import FunctionalExtensionality.
 
 Require Import Plus.
 Require Import Arith.
@@ -37,8 +39,8 @@ Tactic Notation "SSSSCase" constr(name) := Case_aux SSSSCase name.
 Tactic Notation "SSSSSCase" constr(name) := Case_aux SSSSSCase name.
 Tactic Notation "SSSSSSCase" constr(name) := Case_aux SSSSSSCase name.
 Tactic Notation "SSSSSSSCase" constr(name) := Case_aux SSSSSSSCase name.
-(** Here's an example of how [Case] is used.  Step through the
-   following proof and observe how the context changes. *)
+
+
 
 (* ~~~~~~~ DEFINITIONS ~~~~~~~ *)
 
@@ -120,15 +122,15 @@ Fixpoint behavior {i o} (C : Circuit i o) : BoolVect i -> BoolVect o :=
     | high => fun _ => [true]
     | low  => fun _ => [false]
     | wire => fun bv => bv
-    | split=> fun bv => [bv[@ F1]; bv[@ F1]]
+    | split=> fun bv => [hd bv; hd bv]
     | inv  => fun bv => map negb bv
     | buf  => fun bv => bv
     | and  => fun bv => [fold_right andb bv true]
     | or   => fun bv => [fold_right orb bv false]
-    | xor  => fun bv => [xorb bv[@ F1] bv[@ FS F1]]
+    | xor  => fun bv => [xorb (hd bv) (hd (tl bv))]
     | nand => fun bv => [negb (fold_right andb bv true)]
     | nor  => fun bv => [negb (fold_right orb bv false)]
-    | xnor => fun bv => [negb (xorb bv[@ F1] bv[@ FS F1])]
+    | xnor => fun bv => [negb (xorb (hd bv) (hd (tl bv)))]
     | and3 => fun bv => [fold_right andb bv true]
     | comp _ _ _ c1 c2 => fun bv => behavior c2 (behavior c1 bv)
     | par _ _ _ _ c1 c2 => fun bv => append (behavior c1 (bv_plus_left bv))
@@ -298,8 +300,9 @@ Theorem delay_par_ident_r : forall (m n : nat) (A : Circuit m n),
   delay (par A none) = delay A.
 Proof. 
   intros m n A.
-  simpl. apply max_l. 
-  Admitted.
+  simpl. apply max_l.
+  apply le_0_n.
+Qed.
 
 Theorem behavior_comp_ident_l : forall (m n : nat) (A : Circuit m n),
   behavior (comp (par_wire m) A) = behavior A.
