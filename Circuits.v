@@ -10,6 +10,7 @@ Import VectorNotations.
 
 Require Import Plus.
 Require Import Arith.
+Require Import NAxioms NSub GenericMinMax.
 
 Require String. Open Scope string_scope.
 
@@ -365,13 +366,21 @@ Qed.
 
 Theorem delay_distr_l : forall (m n o p q : nat) (A : Circuit m (n + p)) (B : Circuit n o) (C : Circuit p q),
   delay (comp A (par B C)) = delay (par (comp A (par B (par_wire p))) (comp A (par (par_wire n) C))).
-Proof. Admitted.
+Proof. 
+  intros m n o p q A B C.
+  simpl. rewrite delay_par_wire. rewrite delay_par_wire. 
+  rewrite Max.max_0_r. rewrite Max.max_0_l. symmetry. 
+  apply Max.plus_max_distr_l.
+Qed.
 
 Theorem delay_distr_r : forall (m n o p q : nat) (B : Circuit m n) (C : Circuit o p) (A : Circuit (n + p) q),
   delay (comp (par B C) A) = delay (par (comp (par B (par_wire p)) A) (comp (par (par_wire n) C) A)).
-Proof. Admitted.
-
-
+Proof. 
+  intros m n o p q B C A.
+  simpl. rewrite delay_par_wire. rewrite delay_par_wire.
+  rewrite Max.max_0_r. rewrite Max.max_0_l. symmetry.
+  apply Max.plus_max_distr_r.
+Qed.
 
 (* ~~~~~~~ ANNIHILATION ~~~~~~~ *)
 (* ~~~~~~~ is this true? I'm not sure what none does. ~~~~~~~~ *)
