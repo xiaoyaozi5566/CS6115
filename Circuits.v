@@ -140,7 +140,7 @@ Fixpoint behavior {i o} (C : Circuit i o) : BoolVect i -> BoolVect o :=
 
 
 
-(* ~~~~~~~ IDENTITY ELEMENTS ~~~~~~~ *)
+(* ~~~~~~~ IDENTITIES ~~~~~~~ *)
 
 Fixpoint par_wire (n : nat) : Circuit n n :=
   match n with
@@ -226,17 +226,42 @@ Proof.
   apply le_0_n.
 Qed.
 
+Theorem behavior_par_wire : forall (n : nat),
+  behavior (par_wire n) = id.
+Proof.
+  induction n; extensionality x.
+    simpl. apply case0. reflexivity.
+    simpl. rewrite IHn. apply (caseS (fun n x => hd x :: id (tl x) = id x)). reflexivity.
+Qed.
+
 Theorem behavior_comp_ident_l : forall (m n : nat) (A : Circuit m n),
   behavior (comp (par_wire m) A) = behavior A.
-Proof. Admitted.
+Proof.
+  intros m n A.
+  simpl.
+  rewrite behavior_par_wire.
+  extensionality x.
+  reflexivity.
+Qed.
 
 Theorem behavior_comp_ident_r : forall (m n : nat) (A : Circuit m n),
   behavior (comp A (par_wire n)) = behavior A.
-Proof. Admitted.
+Proof.
+  intros m n A.
+  simpl.
+  rewrite behavior_par_wire.
+  extensionality x.
+  reflexivity.
+Qed.
 
 Theorem behavior_par_ident_l : forall (m n : nat) (A : Circuit m n),
   behavior (par none A) = behavior A.
-Proof. Admitted.
+Proof.
+  intros m n A.
+  simpl.
+  extensionality x.
+  reflexivity.
+Qed.
 
 Theorem behavior_par_ident_r : forall (m n : nat) (A : Circuit m n),
   behavior (par A none) = eq_rect_r (fun x => BoolVect x -> _)
