@@ -140,85 +140,6 @@ Fixpoint behavior {i o} (C : Circuit i o) : BoolVect i -> BoolVect o :=
 
 
 
-(* ~~~~~~~ ASSOCIATIVITY ~~~~~~~ *)
-
-Theorem area_comp_assoc : forall (m n o p : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit o p),
-  area (comp A (comp B C)) = area (comp (comp A B) C).
-Proof.
-  intros m n o p A B C.
-  simpl.
-  rewrite plus_assoc.
-  reflexivity.
-Qed.
-
-Theorem area_par_assoc : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit o p) (C : Circuit q r),
-  area (par A (par B C)) = area (par (par A B) C).
-Proof.
-  intros m n o p q r A B C.
-  simpl.
-  rewrite plus_assoc.
-  reflexivity.
-Qed.
-
-Theorem delay_comp_assoc : forall (m n o p : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit o p),
-  delay (comp A (comp B C)) = delay (comp (comp A B) C).
-Proof. 
-  intros m n o p A B C.
-  simpl.
-  rewrite plus_assoc.
-  reflexivity.
-Qed.
-
-Theorem delay_par_assoc : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit o p) (C : Circuit q r),
-  delay (par A (par B C)) = delay (par (par A B) C).
-Proof.
-  intros m n o p q r A B C.
-  simpl.
-  destruct (le_lt_dec (delay B) (delay C)).
-    rewrite (max_r (delay B) (delay C)).
-    destruct (le_lt_dec (delay A) (delay B)).
-      rewrite (max_r (delay A) (delay B)).
-      rewrite (max_r (delay A) (delay C)).
-      rewrite (max_r (delay B) (delay C)).
-      reflexivity. apply l. apply le_trans with (delay B). apply l0. apply l. apply l0.
-      destruct (le_lt_dec (delay A) (delay C)).
-        rewrite (max_r (delay A) (delay C)).
-        rewrite (max_l (delay A) (delay B)).
-        rewrite (max_r (delay A) (delay C)).
-        reflexivity. apply l1. apply lt_le_weak in l0. apply l0. apply l1.
-        rewrite (max_l (delay A) (delay C)).
-        rewrite (max_l (delay A) (delay B)).
-        rewrite (max_l (delay A) (delay C)).
-        reflexivity. apply lt_le_weak in l1. apply l1. apply lt_le_weak in l0. apply l0. 
-        apply lt_le_weak in l1. apply l1. apply l.
-    rewrite (max_l (delay B) (delay C)).
-    destruct (le_lt_dec (delay A) (delay B)).
-      rewrite (max_r (delay A) (delay B)).
-      rewrite (max_l (delay B) (delay C)).
-      reflexivity. apply lt_le_weak in l. apply l. apply l0.
-      rewrite (max_l (delay A) (delay B)).
-      rewrite (max_l (delay A) (delay C)).
-      reflexivity. apply lt_le_weak in l. apply lt_le_weak in l0. apply le_trans with (delay B). apply l. apply l0.
-      apply lt_le_weak in l0. apply l0. apply lt_le_weak in l. apply l.
-Qed.
-  
-
-Theorem behavior_comp_assoc : forall (m n o p : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit o p),
-  behavior (comp A (comp B C)) = behavior (comp (comp A B) C).
-Proof.
-  reflexivity.
-Qed.
-
-Theorem behavior_par_assoc : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit o p) (C : Circuit q r),
-  behavior (par A (par B C)) = eq_rect_r (fun x => BoolVect x -> _)
-                                         (eq_rect_r (fun x => _ -> BoolVect x)
-                                                    (behavior (par (par A B) C))
-                                                    (plus_assoc _ _ _))
-                                         (plus_assoc _ _ _).
-Proof. Admitted.
-
-
-
 (* ~~~~~~~ IDENTITY ELEMENTS ~~~~~~~ *)
 
 Fixpoint par_wire (n : nat) : Circuit n n :=
@@ -327,6 +248,85 @@ Proof. Admitted.
 
 
 
+(* ~~~~~~~ ASSOCIATIVITY ~~~~~~~ *)
+
+Theorem area_comp_assoc : forall (m n o p : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit o p),
+  area (comp A (comp B C)) = area (comp (comp A B) C).
+Proof.
+  intros m n o p A B C.
+  simpl.
+  rewrite plus_assoc.
+  reflexivity.
+Qed.
+
+Theorem area_par_assoc : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit o p) (C : Circuit q r),
+  area (par A (par B C)) = area (par (par A B) C).
+Proof.
+  intros m n o p q r A B C.
+  simpl.
+  rewrite plus_assoc.
+  reflexivity.
+Qed.
+
+Theorem delay_comp_assoc : forall (m n o p : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit o p),
+  delay (comp A (comp B C)) = delay (comp (comp A B) C).
+Proof. 
+  intros m n o p A B C.
+  simpl.
+  rewrite plus_assoc.
+  reflexivity.
+Qed.
+
+Theorem delay_par_assoc : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit o p) (C : Circuit q r),
+  delay (par A (par B C)) = delay (par (par A B) C).
+Proof.
+  intros m n o p q r A B C.
+  simpl.
+  destruct (le_lt_dec (delay B) (delay C)).
+    rewrite (max_r (delay B) (delay C)).
+    destruct (le_lt_dec (delay A) (delay B)).
+      rewrite (max_r (delay A) (delay B)).
+      rewrite (max_r (delay A) (delay C)).
+      rewrite (max_r (delay B) (delay C)).
+      reflexivity. apply l. apply le_trans with (delay B). apply l0. apply l. apply l0.
+      destruct (le_lt_dec (delay A) (delay C)).
+        rewrite (max_r (delay A) (delay C)).
+        rewrite (max_l (delay A) (delay B)).
+        rewrite (max_r (delay A) (delay C)).
+        reflexivity. apply l1. apply lt_le_weak in l0. apply l0. apply l1.
+        rewrite (max_l (delay A) (delay C)).
+        rewrite (max_l (delay A) (delay B)).
+        rewrite (max_l (delay A) (delay C)).
+        reflexivity. apply lt_le_weak in l1. apply l1. apply lt_le_weak in l0. apply l0. 
+        apply lt_le_weak in l1. apply l1. apply l.
+    rewrite (max_l (delay B) (delay C)).
+    destruct (le_lt_dec (delay A) (delay B)).
+      rewrite (max_r (delay A) (delay B)).
+      rewrite (max_l (delay B) (delay C)).
+      reflexivity. apply lt_le_weak in l. apply l. apply l0.
+      rewrite (max_l (delay A) (delay B)).
+      rewrite (max_l (delay A) (delay C)).
+      reflexivity. apply lt_le_weak in l. apply lt_le_weak in l0. apply le_trans with (delay B). apply l. apply l0.
+      apply lt_le_weak in l0. apply l0. apply lt_le_weak in l. apply l.
+Qed.
+  
+
+Theorem behavior_comp_assoc : forall (m n o p : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit o p),
+  behavior (comp A (comp B C)) = behavior (comp (comp A B) C).
+Proof.
+  reflexivity.
+Qed.
+
+Theorem behavior_par_assoc : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit o p) (C : Circuit q r),
+  behavior (par A (par B C)) = eq_rect_r (fun x => BoolVect x -> _)
+                                         (eq_rect_r (fun x => _ -> BoolVect x)
+                                                    (behavior (par (par A B) C))
+                                                    (plus_assoc _ _ _))
+                                         (plus_assoc _ _ _).
+Proof. Admitted.
+
+
+
 (* ~~~~~~~ COMMUTATIVITY ~~~~~~~ *)
 
 Theorem area_comp_comm : forall (m n : nat) (A : Circuit m n) (B : Circuit n m),
@@ -385,6 +385,8 @@ Proof.
   apply Max.plus_max_distr_r.
 Qed.
 
+
+
 (* ~~~~~~~ ANNIHILATION ~~~~~~~ *)
 (* ~~~~~~~ is this true? I'm not sure what none does. ~~~~~~~~ *)
 
@@ -414,6 +416,8 @@ Proof.
   intros m n A.
   simpl. rewrite max_l. reflexivity. reflexivity.
 Qed.
+
+
 
 (* ~~~~~~~ I DON'T KNOW WHAT TO CALL THIS. IT'S KIND OF LIKE TRANSPOSITION. MANHATTAN EQUIVALENCE? ~~~~~~~ *)
 (* TODO : generalize the theorems below to account for any finite number of rows/column
