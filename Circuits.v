@@ -146,7 +146,7 @@ Notation "x =v y" := (eq_dep nat BoolVect _ x _ y)
 Notation "a =b b" := (forall x y, x =v y -> eq_dep nat BoolVect _ (a x) _ (b y))
                      (at level 70, no associativity).
 
-(* behavior equality reflexivity holds because nat equality is decidable *)
+(* behavior equality reflexivity *)
 Theorem eqb_refl : forall (i o : nat) (b : BoolVect i -> BoolVect o),
   b =b b.
 Proof.
@@ -155,27 +155,11 @@ Proof.
   reflexivity.
 Qed.
 
-(* failed attempt without nat equality decidability
-Definition eqb_refl' : forall i o (b : BoolVect i -> BoolVect o), b =b b :=
-  fun i o b x y xy =>
-  match xy in eq_dep _ _ _ _ _ y'
-  return forall b' x', x' =v x -> b' x' =v b' y'
-  with eq_dep_intro => fun b x xx => match xx with eq_dep_intro => eq_dep_intro _ _ _ _ end
-  end b x (eq_dep_intro _ _ _ _).
-*)
-
-(* without annotations, type checker runs out of memory?
-Definition eqb_refl : forall i o (b : BoolVect i -> BoolVect o), b =b b :=
-  fun i o b x y xy =>
-  match xy
-  with eq_dep_intro => fun b => eq_dep_intro _ _ _ _
-  end b.
-*)
-
 
 
 (* ~~~~~~~ IDENTITIES ~~~~~~~ *)
 
+(* comp identity *)
 Fixpoint par_wire (n : nat) : Circuit n n :=
   match n with
     | O => none
@@ -559,27 +543,6 @@ Qed.
 
 
 
-(* ~~~~~~~ ANNIHILATION ~~~~~~~ *)
-(* ~~~~~~~ is this true? I'm not sure what none does. ~~~~~~~~ *)
-
-Theorem area_anni_l : forall (n : nat) (A : Circuit 0 n),
-  area (comp none A) = area none.
-Proof. Admitted.
-
-Theorem area_anni_r : forall (n : nat) (A : Circuit n 0),
-  area (comp A none) = area none.
-Proof. Admitted.
-
-Theorem delay_anni_l : forall (n : nat) (A : Circuit 0 n),
-  delay (comp none A) = area none.
-Proof. Admitted.
-
-Theorem delay_anni_r : forall (n : nat) (A : Circuit n 0),
-  delay (comp A none) = area none.
-Proof. Admitted.
-
-
-
 (* ~~~~~~~ IDEMPOTENCE ~~~~~~~ *)
 
 Theorem delay_par_idemp : forall (m n : nat) (A : Circuit m n),
@@ -591,7 +554,7 @@ Qed.
 
 
 
-(* ~~~~~~~ I DON'T KNOW WHAT TO CALL THIS. IT'S KIND OF LIKE TRANSPOSITION. MANHATTAN EQUIVALENCE? ~~~~~~~ *)
+(* ~~~~~~~ MANHATTAN EQUIVALENCE ~~~~~~~ *)
 (* TODO : generalize the theorems below to account for any finite number of rows/column
         : area_manhattan, comp_manhattan, behavior_manhattan *)
 
@@ -602,24 +565,23 @@ Proof.
   simpl. apply plus_permute_2_in_4.
 Qed.
 
-(* ~~~~~~ This theorem seems to be wrong ~~~~~~ *)
 Theorem delay_comp_par : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit p q) (D : Circuit q r),
-  delay (par (comp A B) (comp C D)) = delay (comp (par A C) (par B D)).
+  delay (par (comp A B) (comp C D)) <= delay (comp (par A C) (par B D)).
 Proof. Admitted.
 
 Theorem behavior_comp_par : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit p q) (D : Circuit q r),
-  behavior (par (comp A B) (comp C D)) = behavior (comp (par A C) (par B D)).
+  behavior (par (comp A B) (comp C D)) =b behavior (comp (par A C) (par B D)).
 Proof. Admitted.
 
 
 
 (* ~~~~~~~ FACTS ~~~~~~~ *)
 
-Theorem nand_vs_and_inv : behavior nand = behavior (comp and inv) /\ area nand < area (comp and inv) /\ delay nand < delay (comp and inv).
+Theorem nand_vs_and_inv : behavior nand =b behavior (comp and inv) /\ area nand < area (comp and inv) /\ delay nand < delay (comp and inv).
 Proof. Admitted.
 
-Theorem nand_minimal_area : ~ exists (C : Circuit 2 1), behavior C = behavior nand /\ area C < area nand.
+Theorem nand_minimal_area : ~ exists (C : Circuit 2 1), behavior C =b behavior nand /\ area C < area nand.
 Proof. Admitted.
 
-Theorem nand_minimal_delay : ~ exists (C : Circuit 2 1), behavior C = behavior nand /\ delay C < delay nand.
+Theorem nand_minimal_delay : ~ exists (C : Circuit 2 1), behavior C =b behavior nand /\ delay C < delay nand.
 Proof. Admitted.
