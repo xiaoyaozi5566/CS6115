@@ -7,14 +7,14 @@
 
 Require Import Vector.
 Import VectorNotations.
+Infix "++" := append.
 
-Require Import FunctionalExtensionality.
+Require Import EqdepFacts Eqdep_dec.
 
-Require Import Plus.
-Require Import Arith.
-Require Import NAxioms NSub GenericMinMax.
+Require Import Plus Arith NAxioms NSub GenericMinMax.
 
-Require String. Open Scope string_scope.
+Require String.
+Open Scope string_scope.
 
 Ltac move_to_top x :=
   match reverse goal with
@@ -134,9 +134,43 @@ Fixpoint behavior {i o} (C : Circuit i o) : BoolVect i -> BoolVect o :=
     | xnor => fun bv => [negb (xorb (hd bv) (hd (tl bv)))]
     | and3 => fun bv => [fold_right andb bv true]
     | comp _ _ _ c1 c2 => fun bv => behavior c2 (behavior c1 bv)
-    | par _ _ _ _ c1 c2 => fun bv => append (behavior c1 (bv_plus_left bv))
-                                            (behavior c2 (bv_plus_right bv))
+    | par _ _ _ _ c1 c2 => fun bv => (behavior c1 (bv_plus_left bv))
+                                     ++ (behavior c2 (bv_plus_right bv))
   end.
+
+(* vector equality *)
+Notation "x =v y" := (eq_dep nat BoolVect _ x _ y)
+                     (at level 70, no associativity).
+
+(* behavior equality *)
+Notation "a =b b" := (forall x y, x =v y -> eq_dep nat BoolVect _ (a x) _ (b y))
+                     (at level 70, no associativity).
+
+(* behavior equality reflexivity holds because nat equality is decidable *)
+Theorem eqb_refl : forall (i o : nat) (b : BoolVect i -> BoolVect o),
+  b =b b.
+Proof.
+  intros i o b x y xy.
+  rewrite (eq_dep_eq_dec eq_nat_dec xy).
+  reflexivity.
+Qed.
+
+(* failed attempt without nat equality decidability
+Definition eqb_refl' : forall i o (b : BoolVect i -> BoolVect o), b =b b :=
+  fun i o b x y xy =>
+  match xy in eq_dep _ _ _ _ _ y'
+  return forall b' x', x' =v x -> b' x' =v b' y'
+  with eq_dep_intro => fun b x xx => match xx with eq_dep_intro => eq_dep_intro _ _ _ _ end
+  end b x (eq_dep_intro _ _ _ _).
+*)
+
+(* without annotations, type checker runs out of memory?
+Definition eqb_refl : forall i o (b : BoolVect i -> BoolVect o), b =b b :=
+  fun i o b x y xy =>
+  match xy
+  with eq_dep_intro => fun b => eq_dep_intro _ _ _ _
+  end b.
+*)
 
 
 
@@ -227,49 +261,72 @@ Proof.
 Qed.
 
 Theorem behavior_par_wire : forall (n : nat),
-  behavior (par_wire n) = id.
+  behavior (par_wire n) =b id (A := BoolVect n).
 Proof.
-  induction n; extensionality x.
-    simpl. apply case0. reflexivity.
-    simpl. rewrite IHn. apply (caseS (fun n x => hd x :: id (tl x) = id x)). reflexivity.
+  induction n; simpl; intros x y xy.
+    apply case0. reflexivity.
+    rewrite <- xy. rewrite (IHn (tl x) (tl x)).
+      apply (caseS (fun _ x => hd x :: id (tl x) =v id x)). reflexivity.
+      reflexivity.
 Qed.
 
 Theorem behavior_comp_ident_l : forall (m n : nat) (A : Circuit m n),
-  behavior (comp (par_wire m) A) = behavior A.
+  behavior (comp (par_wire m) A) =b behavior A.
 Proof.
-  intros m n A.
   simpl.
-  rewrite behavior_par_wire.
-  extensionality x.
-  reflexivity.
+  intros m n A x y xy.
+  apply eqb_refl.
+  apply behavior_par_wire.
+  assumption.
 Qed.
 
 Theorem behavior_comp_ident_r : forall (m n : nat) (A : Circuit m n),
-  behavior (comp A (par_wire n)) = behavior A.
+  behavior (comp A (par_wire n)) =b behavior A.
 Proof.
-  intros m n A.
   simpl.
-  rewrite behavior_par_wire.
-  extensionality x.
-  reflexivity.
+  intros m n A x y xy.
+  rewrite (behavior_par_wire n (behavior A x) (behavior A x)).
+    unfold id. apply eqb_refl. assumption.
+    reflexivity.
 Qed.
 
 Theorem behavior_par_ident_l : forall (m n : nat) (A : Circuit m n),
-  behavior (par none A) = behavior A.
+  behavior (par none A) =b behavior A.
 Proof.
-  intros m n A.
   simpl.
-  extensionality x.
-  reflexivity.
+  intros m n A.
+  apply eqb_refl.
+Qed.
+
+Theorem append_nil : forall (n : nat) (bv : BoolVect n),
+  bv ++ [] =v bv.
+Proof.
+  intros n bv.
+  induction bv.
+    reflexivity.
+    simpl. rewrite IHbv. reflexivity.
+Qed.
+
+Theorem bv_plus_left_0 : forall (n : nat) (bv : BoolVect (n + 0)),
+  bv_plus_left bv =v bv.
+Proof.
+  intros n bv.
+  induction n.
+    simpl. apply case0. reflexivity.
+    simpl. rewrite (IHn (tl bv)). apply (caseS (fun _ x => hd x :: tl x =v x)). reflexivity.
 Qed.
 
 Theorem behavior_par_ident_r : forall (m n : nat) (A : Circuit m n),
-  behavior (par A none) = eq_rect_r (fun x => BoolVect x -> _)
-                                    (eq_rect_r (fun x => _ -> BoolVect x)
-                                               (behavior A)
-                                               (plus_0_r _))
-                                    (plus_0_r _).
-Proof. Admitted.
+  behavior (par A none) =b behavior A.
+Proof.
+  simpl.
+  intros m n A x y xy.
+  rewrite append_nil.
+  apply eqb_refl.
+  apply eq_dep_trans with (y := x).
+    apply bv_plus_left_0.
+    assumption.
+Qed.
 
 
 
@@ -334,21 +391,111 @@ Proof.
       reflexivity. apply lt_le_weak in l. apply lt_le_weak in l0. apply le_trans with (delay B). apply l. apply l0.
       apply lt_le_weak in l0. apply l0. apply lt_le_weak in l. apply l.
 Qed.
-  
 
 Theorem behavior_comp_assoc : forall (m n o p : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit o p),
-  behavior (comp A (comp B C)) = behavior (comp (comp A B) C).
+  behavior (comp A (comp B C)) =b behavior (comp (comp A B) C).
 Proof.
+  simpl.
+  intros m n o p A B C x y xy.
+  repeat (apply eqb_refl).
+  assumption.
+Qed.
+
+Theorem append_assoc : forall (m n o : nat) (x : BoolVect m) (y : BoolVect n) (z : BoolVect o),
+  x ++ (y ++ z) =v (x ++ y) ++ z.
+Proof.
+  intros m n o x y z.
+  induction x.
+    reflexivity.
+    simpl. rewrite IHx. reflexivity.
+Qed.
+
+Theorem eqv_hd : forall (m n : nat) (x : BoolVect (S m)) (y : BoolVect (S n)),
+  x =v y -> hd x = hd y.
+Proof.
+  intros m n.
+  destruct (eq_nat_dec m n).
+    rewrite e.
+      intros x y xy.
+      rewrite (eq_dep_eq_dec eq_nat_dec xy).
+      reflexivity.
+    intros x y xy.
+      elimtype False.
+      apply n0.
+      inversion xy.
+      assumption.
+Qed.
+
+Theorem eqv_tl : forall (m n : nat) (x : BoolVect (S m)) (y : BoolVect (S n)),
+  x =v y -> tl x =v tl y.
+Proof.
+  intros m n.
+  destruct (eq_nat_dec m n).
+    intro x.
+      rewrite <- e.
+      intros y xy.
+      apply eqb_refl.
+      assumption.
+    intros x y xy.
+      elimtype False.
+      apply n0.
+      inversion xy.
+      assumption.
+Qed.
+
+Theorem eqv_cons : forall (a b : bool) (ab : a = b) (m n : nat) (x : BoolVect m) (y : BoolVect n),
+  x =v y -> a :: x =v b :: y.
+Proof.
+  intros a b ab.
+  rewrite ab.
+  intros m n x y xy.
+  inversion xy.
   reflexivity.
 Qed.
 
+Theorem bv_plus_right_right : forall (m n o : nat) (x : BoolVect (m + (n + o))) (y : BoolVect (m + n + o)),
+  x =v y -> bv_plus_right (bv_plus_right x) =v bv_plus_right y.
+Proof.
+  intros m n o x y xy.
+  induction m.
+    simpl in *. apply eqb_refl. assumption.
+    simpl in *. apply IHm. apply eqv_tl. assumption.
+Qed.
+
+Theorem bv_plus_left_right : forall (m n o : nat) (x : BoolVect (m + (n + o))) (y : BoolVect (m + n + o)),
+  x =v y -> bv_plus_left (bv_plus_right x) =v bv_plus_right (bv_plus_left y).
+Proof.
+  intros m n o x y xy.
+  induction m.
+    simpl in *. apply eqb_refl. assumption.
+    simpl in *. apply IHm. apply eqv_tl. assumption.
+Qed.
+
+Theorem bv_plus_left_left : forall (m n o : nat) (x : BoolVect (m + (n + o))) (y : BoolVect (m + n + o)),
+  x =v y -> bv_plus_left x =v bv_plus_left (bv_plus_left y).
+Proof.
+  intros m n o x y xy.
+  induction m.
+    simpl in *. reflexivity.
+    simpl in *. apply eqv_cons.
+      apply eqv_hd. assumption.
+      apply IHm. apply eqv_tl. assumption.
+Qed.
+
 Theorem behavior_par_assoc : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit o p) (C : Circuit q r),
-  behavior (par A (par B C)) = eq_rect_r (fun x => BoolVect x -> _)
-                                         (eq_rect_r (fun x => _ -> BoolVect x)
-                                                    (behavior (par (par A B) C))
-                                                    (plus_assoc _ _ _))
-                                         (plus_assoc _ _ _).
-Proof. Admitted.
+  behavior (par A (par B C)) =b behavior (par (par A B) C).
+Proof.
+  simpl.
+  intros m n o p q r A B C x y xy.
+  rewrite append_assoc.
+  rewrite eqb_refl with (b := behavior A) (x := bv_plus_left x) (y := bv_plus_left (bv_plus_left y)).
+  rewrite eqb_refl with (b := behavior B) (x := bv_plus_left (bv_plus_right x)) (y := bv_plus_right (bv_plus_left y)).
+  rewrite eqb_refl with (b := behavior C) (x := bv_plus_right (bv_plus_right x)) (y := bv_plus_right y).
+  reflexivity.
+    apply bv_plus_right_right. assumption.
+    apply bv_plus_left_right. assumption.
+    apply bv_plus_left_left. assumption.
+Qed.
 
 
 
