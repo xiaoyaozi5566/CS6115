@@ -578,7 +578,13 @@ Proof. Admitted.
 (* ~~~~~~~ FACTS ~~~~~~~ *)
 
 Theorem nand_vs_and_inv : behavior nand =b behavior (comp and inv) /\ area nand < area (comp and inv) /\ delay nand < delay (comp and inv).
-Proof. Admitted.
+Proof.
+  split.
+  intros x y xy.
+  apply eqb_refl. assumption.
+  split. simpl. apply nat_compare_lt. reflexivity.
+  simpl. apply nat_compare_lt. reflexivity.
+Qed.
 
 Theorem nand_minimal_area : ~ exists (C : Circuit 2 1), behavior C =b behavior nand /\ area C < area nand.
 Proof. Admitted.
