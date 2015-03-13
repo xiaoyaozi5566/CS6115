@@ -554,24 +554,68 @@ Qed.
 
 
 
-(* ~~~~~~~ MANHATTAN EQUIVALENCE ~~~~~~~ *)
-(* TODO : generalize the theorems below to account for any finite number of rows/column
-        : area_manhattan, comp_manhattan, behavior_manhattan *)
+(* ~~~~~~~ PAR COMP ~~~~~~~ *)
 
-Theorem area_comp_par : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit p q) (D : Circuit q r),
+Theorem area_par_comp : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit p q) (D : Circuit q r),
   area (par (comp A B) (comp C D)) = area (comp (par A C) (par B D)).
 Proof. 
   intros m n o p q r A B C D.
   simpl. apply plus_permute_2_in_4.
 Qed.
 
-Theorem delay_comp_par : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit p q) (D : Circuit q r),
+Theorem delay_par_comp : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit p q) (D : Circuit q r),
   delay (par (comp A B) (comp C D)) <= delay (comp (par A C) (par B D)).
-Proof. Admitted.
+Proof.
+  intros m n o p q r A B C D.
+  simpl.
+  apply Max.max_lub.
+    apply plus_le_compat; apply Max.le_max_l.
+    apply plus_le_compat; apply Max.le_max_r.
+Qed.
 
-Theorem behavior_comp_par : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit p q) (D : Circuit q r),
+Theorem eqv_append : forall (m n o p : nat) (w : BoolVect m) (x : BoolVect n) (y : BoolVect o) (z : BoolVect p),
+  w =v y -> x =v z -> w ++ x =v y ++ z.
+Proof.
+  intros m n o p w x y z wy xz.
+  rewrite wy, xz.
+  reflexivity.
+Qed.
+
+Theorem bv_plus_left_append : forall (m n : nat) (x : BoolVect m) (y : BoolVect n),
+  bv_plus_left (x ++ y) =v x.
+Proof.
+  intros m n x y.
+  induction x.
+    reflexivity.
+    simpl. rewrite IHx. reflexivity.
+Qed.
+
+Theorem bv_plus_right_append : forall (m n : nat) (x : BoolVect m) (y : BoolVect n),
+  bv_plus_right (x ++ y) =v y.
+Proof.
+  intros m n x y.
+  induction x.
+    reflexivity.
+    simpl. rewrite IHx. reflexivity.
+Qed.
+
+Theorem behavior_par_comp : forall (m n o p q r : nat) (A : Circuit m n) (B : Circuit n o) (C : Circuit p q) (D : Circuit q r),
   behavior (par (comp A B) (comp C D)) =b behavior (comp (par A C) (par B D)).
-Proof. Admitted.
+Proof.
+  simpl.
+  intros m n o p q r A B C D x y xy.
+  apply eqv_append.
+    apply eqb_refl.
+      rewrite bv_plus_left_append.
+      apply eqb_refl.
+      apply eqb_refl.
+      assumption.
+    apply eqb_refl.
+      rewrite bv_plus_right_append.
+      apply eqb_refl.
+      apply eqb_refl.
+      assumption.
+Qed.
 
 
 
