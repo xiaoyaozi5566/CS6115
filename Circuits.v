@@ -9,7 +9,7 @@ Require Import Vector.
 Import VectorNotations.
 Infix "++" := append.
 
-Require Import EqdepFacts Eqdep_dec.
+Require Import EqdepFacts Eqdep_dec Equality.
 
 Require Import Plus Arith NAxioms NSub GenericMinMax.
 
@@ -621,7 +621,10 @@ Qed.
 
 (* ~~~~~~~ FACTS ~~~~~~~ *)
 
-Theorem nand_vs_and_inv : behavior nand =b behavior (comp and inv) /\ area nand < area (comp and inv) /\ delay nand < delay (comp and inv).
+Theorem nand_vs_and_inv :
+  behavior nand =b behavior (comp and inv)
+  /\ area nand < area (comp and inv)
+  /\ delay nand < delay (comp and inv).
 Proof.
   split.
   intros x y xy.
@@ -630,8 +633,31 @@ Proof.
   simpl. apply nat_compare_lt. reflexivity.
 Qed.
 
-Theorem nand_minimal_area : ~ exists (C : Circuit 2 1), behavior C =b behavior nand /\ area C < area nand.
-Proof. Admitted.
+Theorem fold_right_hd_tl : forall f n (x : BoolVect (S n)) (b : bool),
+  fold_right f x b = f (hd x) (fold_right f (tl x) b).
+Proof.
+  intros f n x b.
+  dependent induction x.
+  simpl.
+  reflexivity.
+Qed.
 
-Theorem nand_minimal_delay : ~ exists (C : Circuit 2 1), behavior C =b behavior nand /\ delay C < delay nand.
-Proof. Admitted.
+Theorem and3_vs_comp_par_and_wire_and :
+  behavior and3 =b behavior (comp (par and wire) and)
+  /\ area and3 < area (comp (par and wire) and)
+  /\ delay and3 < delay (comp (par and wire) and).
+Proof.
+  split.
+    intros x.
+    simpl.
+    intros y xy.
+    rewrite xy.
+    apply eqv_cons.
+      rewrite fold_right_hd_tl.
+      rewrite fold_right_hd_tl.
+      rewrite andb_true_r.
+      rewrite andb_assoc.
+      reflexivity.
+      reflexivity.
+    split; simpl; apply nat_compare_lt; reflexivity.
+Qed.
