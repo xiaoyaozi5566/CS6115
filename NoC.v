@@ -112,7 +112,7 @@ Fixpoint partial_routes_snd (time : nat) (s : natprod) (d : nat) : list natprod 
 Eval compute in partial_routes_fst 10 (4,0) 1.
 Eval compute in partial_routes_snd 10 (1,5) 10.
 
-Definition routes (m n : nat) (R : noc m n) (s d : natprod) : list natprod :=
+Definition min_routes (m n : nat) (R : noc m n) (s d : natprod) : list natprod :=
   match R with
     | bus => cons s (cons d nil)
     | rin n => 
@@ -167,18 +167,67 @@ Definition routes (m n : nat) (R : noc m n) (s d : natprod) : list natprod :=
                       (partial_routes_snd n (pair (fst d) 1) (snd d))))
   end.
 
-(** tests for routes **)
-Eval compute in routes 0 0 bus (0,0) (1,1).
+(** tests for minimal routes **)
+Eval compute in min_routes 0 0 bus (0,0) (1,1).
 
-Eval compute in routes 0 5 rin (1,0) (5,0).
-Eval compute in routes 0 5 rin (1,0) (2,0).
-Eval compute in routes 0 5 rin (5,0) (1,0).
-Eval compute in routes 0 5 rin (2,0) (1,0).
+Eval compute in min_routes 0 5 rin (1,0) (5,0).
+Eval compute in min_routes 0 5 rin (1,0) (2,0).
+Eval compute in min_routes 0 5 rin (5,0) (1,0).
+Eval compute in min_routes 0 5 rin (2,0) (1,0).
 
-Eval compute in routes 5 5 mesh (1,4) (5,1).
-Eval compute in routes 5 5 mesh (1,4) (5,4).
+Eval compute in min_routes 5 5 mesh (1,4) (5,1).
+Eval compute in min_routes 5 5 mesh (1,4) (5,4).
 
-Eval compute in routes 5 5 torus (2,4) (5,1).
-Eval compute in routes 5 5 torus (2,4) (1,2).
-Eval compute in routes 5 5 torus (2,4) (1,5).
-Eval compute in routes 5 5 torus (2,4) (5,5).
+Eval compute in min_routes 5 5 torus (2,4) (5,1).
+Eval compute in min_routes 5 5 torus (2,4) (1,2).
+Eval compute in min_routes 5 5 torus (2,4) (1,5).
+Eval compute in min_routes 5 5 torus (2,4) (5,5).
+
+Definition nonmin_routes (m n : nat) (R : noc m n) (s d : natprod) : list natprod :=
+  match R with
+    | bus => cons s (cons d nil)
+    | rin n => 
+      if leb (fst s) (fst d) then
+        (partial_routes_fst n s (fst d))
+      else
+        (partial_routes_fst n s n) ++ (partial_routes_fst n (pair 1 0) (fst d))
+    | mesh m n => 
+      (partial_routes_fst m s m) ++ (tail (partial_routes_snd n (pair m (snd s)) (snd d))) ++
+        (tail (partial_routes_fst m (pair m (snd d)) (fst d)))
+    | torus m n =>
+        (partial_routes_fst m s (fst d)) ++ (tail (partial_routes_snd n (pair (fst d) (snd s)) (snd d)))
+  end.
+
+(** tests for non minimal routes **)
+Eval compute in nonmin_routes 0 0 bus (0,0) (1,1).
+
+Eval compute in nonmin_routes 0 5 rin (1,0) (5,0).
+Eval compute in nonmin_routes 0 5 rin (1,0) (2,0).
+Eval compute in nonmin_routes 0 5 rin (5,0) (1,0).
+Eval compute in nonmin_routes 0 5 rin (2,0) (1,0).
+
+Eval compute in nonmin_routes 5 5 mesh (1,4) (4,1).
+Eval compute in nonmin_routes 5 5 mesh (1,4) (2,2).
+
+Eval compute in nonmin_routes 5 5 torus (2,4) (5,1).
+Eval compute in nonmin_routes 5 5 torus (2,4) (1,2).
+Eval compute in nonmin_routes 5 5 torus (2,4) (1,5).
+Eval compute in nonmin_routes 5 5 torus (2,4) (5,5).
+
+Definition min_power (m n : nat) (R : noc m n) (df : dataflow) : nat :=
+  match df with
+    | _dataflow s d r => (length (min_routes m n R s d) - 1) * r
+  end.
+
+Eval compute in min_power 0 0 bus (_dataflow (1,1) (4,4) 15).
+Eval compute in min_power 0 5 rin (_dataflow (1,0) (5,0) 30).
+Eval compute in min_power 5 5 mesh (_dataflow (1,1) (4,4) 20).
+Eval compute in min_power 5 5 torus (_dataflow (1,1) (4,4) 25).
+
+Definition nonmin_power (m n : nat) (R : noc m n) (df : dataflow) : nat :=
+  match df with
+    | _dataflow s d r => (length (nonmin_routes m n R s d) - 1) * r
+  end.
+
+
+
