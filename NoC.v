@@ -37,6 +37,8 @@ Require Import Init.Datatypes.
 
 Require Import Coq.Lists.List.
 
+Require Import Coq.Lists.Streams.
+
 (* ~~~~~~~~~ DEFINITIONS ~~~~~~~~~ *)
 Inductive noc : nat -> nat -> Type :=
   | bus         : noc 0 0
@@ -229,5 +231,87 @@ Definition nonmin_power (m n : nat) (R : noc m n) (df : dataflow) : nat :=
     | _dataflow s d r => (length (nonmin_routes m n R s d) - 1) * r
   end.
 
+CoFixpoint repeat (a:bool) : Stream bool :=
+Cons a (repeat (negb a)).
 
+Eval compute in repeat true.
+Eval compute in hd (tl (repeat true)).
+
+Definition ref_stream := repeat true.
+
+Definition nondet_routes (m n : nat) (t : nat) (R : noc m n) (s d : natprod) : list natprod :=
+  match R with
+    | bus => cons s (cons d nil)
+    | rin n =>
+      if Str_nth t ref_stream then
+        if leb (fst s) (fst d) then
+          (partial_routes_fst n s (fst d))
+        else
+          (partial_routes_fst n s n) ++ (partial_routes_fst n (pair 1 0) (fst d))
+      else
+        if leb (fst s) (fst d) then
+          (partial_routes_fst n s 1) ++ (partial_routes_fst n (pair n 0) (fst d))
+        else
+          (partial_routes_fst n s (fst d))
+    | mesh m n => 
+      if Str_nth t ref_stream then
+        (partial_routes_fst m s (fst d)) ++ (tail (partial_routes_snd n (pair (fst d) (snd s)) (snd d)))
+      else
+        (partial_routes_snd n s (snd d)) ++ (tail (partial_routes_fst n (pair (fst s) (snd d)) (fst d)))
+    | torus m n =>
+      if Str_nth t ref_stream then
+        min_routes m n torus s d
+      else
+        if beq_nat (tor_minus (fst s) (fst d) m) (abs_minus (fst s) (fst d)) then
+          if beq_nat (tor_minus (snd s) (snd d) n) (abs_minus (snd s) (snd d)) then
+            (partial_routes_snd m s (snd d)) ++ (tail (partial_routes_fst n (pair (fst s) (snd d)) (fst d)))
+          else
+            if (leb (snd s) (snd d)) then
+              (partial_routes_snd n s 1) ++ (partial_routes_snd n (pair (fst s) 1) (snd d)) ++
+                (tail (partial_routes_fst m (pair (fst s) (snd d)) (fst d)))
+            else
+              (partial_routes_snd n s n) ++ (partial_routes_snd n (pair (fst s) n) (snd d)) ++
+                (tail (partial_routes_fst m (pair (fst s) (snd d)) (fst d)))
+        else
+          if beq_nat (tor_minus (snd s) (snd d) n) (abs_minus (snd s) (snd d)) then
+            if (leb (fst s) (fst d)) then
+              (partial_routes_snd n s (snd d)) ++ 
+                (tail ((partial_routes_fst m (pair (fst s) (snd d)) 1) ++
+                      (partial_routes_fst m (pair n (snd d)) (fst d))))
+            else
+              (partial_routes_snd n s (snd d)) ++ 
+                (tail ((partial_routes_fst m (pair (fst s) (snd d)) m) ++
+                      (partial_routes_fst m (pair 1 (snd d)) (fst d))))
+          else
+            if (leb (fst s) (fst d)) then
+              if (leb (snd s) (snd d)) then
+                ((partial_routes_snd n s 1) ++ (partial_routes_snd m (pair (fst s) 1) (snd d))) ++
+                  (tail ((partial_routes_fst m (pair (fst s) (snd d)) 1) ++
+                        (partial_routes_fst m (pair 1 (snd d)) (fst d))))
+              else
+                ((partial_routes_snd n s n) ++ (partial_routes_snd m (pair (fst s) n) (snd d))) ++
+                  (tail ((partial_routes_fst m (pair (fst s) (snd d)) 1) ++
+                        (partial_routes_fst m (pair 1 (snd d)) (fst d))))
+            else
+              if (leb (snd s) (snd d)) then
+                ((partial_routes_snd n s 1) ++ (partial_routes_snd m (pair (fst s) 1) (snd d))) ++
+                  (tail ((partial_routes_fst m (pair (fst s) (snd d)) m) ++
+                        (partial_routes_fst m (pair m (snd d)) (fst d))))
+              else
+                ((partial_routes_snd n s n) ++ (partial_routes_snd m (pair (fst s) n) (snd d))) ++
+                  (tail ((partial_routes_fst m (pair (fst s) (snd d)) m) ++
+                        (partial_routes_fst m (pair m (snd d)) (fst d))))
+end.
+
+(** Tests for nondeterministic routing **)
+Eval compute in (nondet_routes 0 5 1 rin (1,0) (5,0)).
+Eval compute in (nondet_routes 0 5 2 rin (1,0) (5,0)).
+Eval compute in (nondet_routes 5 5 1 mesh (1,2) (4,3)).
+Eval compute in (nondet_routes 5 5 2 mesh (1,2) (4,3)).
+Eval compute in (nondet_routes 5 5 1 torus (1,2) (4,4)).
+Eval compute in (nondet_routes 5 5 2 torus (1,2) (4,4)).
+
+(** Properties **)
+
+(** Distance Commutativity **)
 
