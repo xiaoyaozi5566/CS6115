@@ -314,4 +314,21 @@ Eval compute in (nondet_routes 5 5 2 torus (1,2) (4,4)).
 (** Properties **)
 
 (** Distance Commutativity **)
+Theorem distance_comm : forall (m n : nat) (s d : natprod) (R : noc m n),
+  distance m n R s d = distance m n R d s.
+Proof.
+Admitted.
 
+(** Step Property **)
+
+(** Minimum Routing **)
+Theorem min_routing : forall (m n : nat) (s d : natprod) (R : noc m n),
+  length(min_routes m n R d s) = distance m n R d s.
+Proof.
+Admitted.
+
+(** Minimal Power **)
+Theorem power_comp : forall (m n : nat) (R : noc m n) (df : dataflow),
+  min_power m n R df <= nonmin_power m n R df.
+Proof.
+Admitted. 
