@@ -311,6 +311,24 @@ Eval compute in (nondet_routes 5 5 2 mesh (1,2) (4,3)).
 Eval compute in (nondet_routes 5 5 1 torus (1,2) (4,4)).
 Eval compute in (nondet_routes 5 5 2 torus (1,2) (4,4)).
 
+Eval compute in (List.length (min_routes 5 5 mesh (1,2) (4,4))).
+Eval compute in (List.length nil).
+
+Fixpoint mapping (m n : nat) (R : noc m n) (dfs : list dataflow) (l : nat) : list (list natprod) :=
+  match l with
+    | O => nil
+    | S l' => match (List.hd (_dataflow (0,0) (1,1) 10) dfs) with
+                | _dataflow s d r => let rt := min_routes m n R s d in cons rt (mapping m n R (List.tl dfs) l')
+              end
+  end.
+
+Definition dataflows := cons (_dataflow (1,1) (3,3) 10) (cons (_dataflow (2,2) (4,4) 20) nil).
+
+Eval compute in (mapping 5 5 mesh dataflows 2).
+
+Definition pair_minus (s d : natprod): nat :=
+  (abs_minus (fst s) (fst d)) + (abs_minus (snd s) (snd d)).
+
 (** Properties **)
 
 (** Distance Commutativity **)
@@ -320,6 +338,10 @@ Proof.
 Admitted.
 
 (** Step Property **)
+Theorem step_property : forall (m n : nat) (s d : natprod) (R : noc m n),
+  pair_minus (List.hd (0,0) (min_routes m n R s d)) (List.hd (0,0) (List.tl (min_routes m n R s d))) = 1.
+Proof.
+Admitted.
 
 (** Minimum Routing **)
 Theorem min_routing : forall (m n : nat) (s d : natprod) (R : noc m n),
@@ -332,3 +354,4 @@ Theorem power_comp : forall (m n : nat) (R : noc m n) (df : dataflow),
   min_power m n R df <= nonmin_power m n R df.
 Proof.
 Admitted. 
+
