@@ -331,23 +331,98 @@ Definition pair_minus (s d : natprod): nat :=
 
 (** Properties **)
 
+Theorem abs_minus_theorem : forall (m n : nat),
+  abs_minus m n = abs_minus n m.
+Proof.
+  intros m.
+  induction m as [| m'].
+  Case "m = O". intros n. destruct n as [| n'].
+    SCase "n = O". reflexivity.
+    SCase "n = S n'". simpl. reflexivity.
+  Case "m = S m'". intros n. destruct n as [| n'].
+    SCase "n = O". reflexivity.
+    SCase "n = S n'". simpl. apply IHm'.
+Qed. 
+
+Theorem tor_minus_theorem : forall (s d n : nat),
+  tor_minus s d n = tor_minus d s n.
+Proof.
+  intros s d n.
+  unfold tor_minus.
+  destruct (le_lt_dec s d).
+    SCase "s <= d".
+      rewrite (min_l s d).
+      rewrite (max_r s d).
+      rewrite (min_r d s).
+      rewrite (max_l d s).
+      rewrite (abs_minus_theorem s d). reflexivity.
+      apply l. apply l. apply l. apply l.
+    SCase "s > d".
+      rewrite (min_r s d).
+      rewrite (max_l s d).
+      rewrite (min_l d s).
+      rewrite (max_r d s).
+      rewrite (abs_minus_theorem s d). reflexivity.
+      apply lt_le_weak in l. apply l.  apply lt_le_weak in l. apply l. 
+      apply lt_le_weak in l. apply l.  apply lt_le_weak in l. apply l.
+Qed.
+ 
 (** Distance Commutativity **)
 Theorem distance_comm : forall (m n : nat) (s d : natprod) (R : noc m n),
   distance m n R s d = distance m n R d s.
 Proof.
-Admitted.
+  intros m n s d R.
+  destruct R.
+  Case "R = bus". 
+    reflexivity.
+  Case "R = rin".
+    simpl. apply tor_minus_theorem.
+  Case "R = mesh".
+    simpl. rewrite (abs_minus_theorem (fst s) (fst d)). 
+    rewrite (abs_minus_theorem (snd s) (snd d)). reflexivity.
+  Case "R = torus".
+    simpl. rewrite (tor_minus_theorem (fst s) (fst d) m).
+    rewrite (tor_minus_theorem (snd s) (snd d) n). reflexivity.
+Qed.
+
+(** Partial Step Property **)
+Theorem partial_step : forall (time d : nat) (s : natprod),
+  pair_minus (List.hd (0,0) (partial_routes_fst time s d)) (List.hd (0,0) (List.tl (partial_routes_fst time s d))) = 1.
+Proof.
+  intros time d s.
+  simpl. admit.
+Qed.
+  
 
 (** Step Property **)
 Theorem step_property : forall (m n : nat) (s d : natprod) (R : noc m n),
   pair_minus (List.hd (0,0) (min_routes m n R s d)) (List.hd (0,0) (List.tl (min_routes m n R s d))) = 1.
 Proof.
+  intros m n s d R.
+  destruct R.
+  Case "R = bus". admit.
+  Case "R = rin". admit.
+  Case "R = mesh". 
+    admit.
+  Case "R = torus". admit.
+Qed.
+
+Theorem partial_routing : forall (time : nat) (s : natprod) (d : nat),
+  length(partial_routes_fst time s d) -1 = abs_minus (fst s) d.
+Proof.
 Admitted.
 
 (** Minimum Routing **)
 Theorem min_routing : forall (m n : nat) (s d : natprod) (R : noc m n),
-  length(min_routes m n R d s) = distance m n R d s.
+  length(min_routes m n R d s) - 1 = distance m n R d s.
 Proof.
-Admitted.
+  intros m n s d R.
+  destruct R.
+  Case "R = bus". simpl. reflexivity.
+  Case "R = rin". 
+    simpl. admit.
+  Case "R = mesh".
+    simpl.
 
 (** Minimal Power **)
 Theorem power_comp : forall (m n : nat) (R : noc m n) (df : dataflow),
