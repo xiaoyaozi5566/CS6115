@@ -200,6 +200,14 @@ Definition nonmin_routes (m n : nat) (R : noc m n) (s d : natprod) : list natpro
         (partial_routes_fst m s (fst d)) ++ (tail (partial_routes_snd n (pair (fst d) (snd s)) (snd d)))
   end.
 
+Definition nonmin_distance (m n : nat) (R : noc m n) (s d : natprod) : nat :=
+  match R with
+    | bus => 1
+    | rin n => abs_minus (fst s) (fst d)
+    | mesh m n => abs_minus (fst s) m + abs_minus (snd s) (snd d) + abs_minus (fst d) m
+    | torus m n => abs_minus (fst s) (fst d) + abs_minus (snd s) (snd d)
+  end.
+
 (** tests for non minimal routes **)
 Eval compute in nonmin_routes 0 0 bus (0,0) (1,1).
 
@@ -407,14 +415,47 @@ Proof.
   Case "R = torus". admit.
 Qed.
 
-Theorem partial_routing : forall (time : nat) (s : natprod) (d : nat),
-  length(partial_routes_fst time s d) -1 = abs_minus (fst s) d.
+Theorem partial_routing_fst : forall (time : nat) (s : natprod) (d : nat),
+  length(partial_routes_fst time s d)  = (abs_minus (fst s) d) + 1.
 Proof.
-Admitted.
+  intros time s d.
+  destruct (le_lt_dec (fst s) d).
+  Case "fst s < d". simpl. admit. admit.
+Qed.  
+
+Theorem partial_routing_snd : forall (time : nat) (s : natprod) (d : nat),
+  length(partial_routes_snd time s d)  = (abs_minus (snd s) d) + 1.
+Proof.
+  Admitted.
+
+Variable A : Type.
+
+Theorem length_tl : forall (l : list natprod),
+  length l > 0 -> length (tail l) = length l - 1.
+Proof.
+  intros l.
+  destruct l.
+  Case "nil".
+    intro H.
+    inversion H.
+  Case "a::l".
+    intro H.
+    simpl. rewrite <- minus_n_O. reflexivity.
+Qed.
+
+Theorem plus_permute_3 : forall (n m p : nat),
+  n + m + p = n + p + m.
+Proof.
+  Admitted.
+
+Theorem plus_minus_3 : forall (n m : nat),
+  n + m - m = n.
+Proof.
+  Admitted.
 
 (** Minimum Routing **)
 Theorem min_routing : forall (m n : nat) (s d : natprod) (R : noc m n),
-  length(min_routes m n R d s) - 1 = distance m n R d s.
+  length(min_routes m n R d s)  = distance m n R d s + 1.
 Proof.
   intros m n s d R.
   destruct R.
@@ -422,11 +463,57 @@ Proof.
   Case "R = rin". 
     simpl. admit.
   Case "R = mesh".
-    simpl.
+    simpl. rewrite app_length. rewrite partial_routing_fst. 
+    rewrite length_tl.
+    rewrite partial_routing_snd.
+    simpl. rewrite plus_permute_3. rewrite plus_minus_3. reflexivity.
+    rewrite partial_routing_snd. simpl. rewrite plus_comm. apply lt_plus_trans.
+    rewrite nat_compare_lt. simpl. reflexivity.
+  Case "R = torus".
+    admit.
+Qed.
+
+Theorem nonmin_routing : forall (m n : nat) (s d : natprod) (R : noc m n),
+  length(nonmin_routes m n R d s) = nonmin_distance m n R d s + 1.
+Proof.
+  Admitted.
+
+Theorem abs_minus_trans : forall (m n : nat),
+  m <= n -> abs_minus m n = n - m.
+Proof.
+  Admitted.
 
 (** Minimal Power **)
-Theorem power_comp : forall (m n : nat) (R : noc m n) (df : dataflow),
-  min_power m n R df <= nonmin_power m n R df.
+Theorem power_comp : forall (m n : nat) (R : noc m n) (s d : natprod) (r : nat),
+  (fst s) <= m -> (fst d) <=  m -> min_power m n R (_dataflow s d r) <= nonmin_power m n R (_dataflow s d r).
 Proof.
-Admitted. 
+  intros m n R s d r.
+  intros H0 H1.
+  destruct R.
+  Case "R = bus". 
+    simpl. reflexivity.
+  Case "R = rin".
+    unfold min_power. rewrite -> min_routing. admit.
+  Case "R = mesh".
+    unfold min_power. rewrite min_routing.
+    unfold nonmin_power. rewrite nonmin_routing. 
+    apply mult_le_compat_r.
+    rewrite plus_minus_3. rewrite plus_minus_3.
+    simpl. rewrite plus_permute_3.
+    apply plus_le_compat_r.
+    destruct (le_lt_dec (fst s) (fst d)).
+      SCase "fst s <= fst d".
+        repeat (rewrite abs_minus_trans).
+        assert (H: fst d - fst s <= m - fst s).
+          SSCase "Proof of assertion". apply minus_le_compat_r.
+        assumption. apply le_plus_trans. apply H. apply H1. apply H0. apply l.
+      SCase "fst d < fst s".
+        rewrite abs_minus_theorem.
+        repeat (rewrite abs_minus_trans). rewrite plus_comm.
+        assert (H: fst s - fst d <= m - fst d).
+          SSCase "Proof of assertion". apply minus_le_compat_r.
+        assumption. apply le_plus_trans. apply H. apply H1. apply H0. apply lt_le_weak. apply l.
+  Case "R = torus".
+    admit.
+Qed.
 
