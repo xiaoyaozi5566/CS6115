@@ -93,23 +93,47 @@ Inductive dataflow : Type :=
 Inductive link : Type :=
   _link : natprod -> natprod -> nat -> link.
 
-Fixpoint partial_routes_fst (time : nat) (s : natprod) (d : nat) : list natprod :=
-  match time with
-  | O => cons s nil
-  | S time' => if beq_nat (fst s) d then cons s nil
-               else
-                 if leb d (fst s) then cons s (partial_routes_fst time' (pair ((fst s) - 1) (snd s)) d)
-                 else cons s (partial_routes_fst time' (pair ((fst s) + 1) (snd s)) d)
+Fixpoint snoc (l: list natprod) (v:natprod) : list natprod := 
+  match l with
+  | nil => v::nil
+  | h :: t => h :: (snoc t v)
   end.
 
-Fixpoint partial_routes_snd (time : nat) (s : natprod) (d : nat) : list natprod :=
-  match time with
-  | O => cons s nil
-  | S time' => if beq_nat (snd s) d then cons s nil
-               else
-                 if leb d (snd s) then cons s (partial_routes_snd time' (pair (fst s) ((snd s) - 1)) d)
-                 else cons s (partial_routes_snd time' (pair (fst s) ((snd s) + 1)) d)
+Fixpoint partial_routes_fst_r (sx : nat) (sy : nat) (d : nat) : list natprod :=
+  match d with
+    | O => cons (sx, sy) nil
+    | S d' => if beq_nat sx d then cons (sx, sy) nil
+              else snoc (partial_routes_fst_r sx sy d') (d, sy)
   end.
+
+Fixpoint partial_routes_fst_l (sx : nat) (sy : nat) (d : nat) : list natprod :=
+  match sx with
+    | O => cons (sx, sy) nil
+    | S sx' => if beq_nat sx d then cons (sx, sy) nil
+               else cons (sx, sy) (partial_routes_fst_l sx' sy d)
+  end.
+
+Fixpoint partial_routes_snd_r (sx : nat) (sy : nat) (d : nat) : list natprod :=
+  match d with
+    | O => cons (sx, sy) nil
+    | S d' => if beq_nat sy d then cons (sx, sy) nil
+              else snoc (partial_routes_snd_r sx sy d') (sx, d)
+  end.
+
+Fixpoint partial_routes_snd_l (sx : nat) (sy : nat) (d : nat) : list natprod :=
+  match sy with
+    | O => cons (sx, sy) nil
+    | S sy' => if beq_nat sy d then cons (sx, sy) nil
+               else cons (sx, sy) (partial_routes_snd_l sx sy' d)
+  end.
+
+Definition partial_routes_fst (time : nat) (s : natprod) (d : nat) : list natprod :=
+  if (leb (fst s) d) then partial_routes_fst_r (fst s) (snd s) d
+  else partial_routes_fst_l (fst s) (snd s) d.
+
+Definition partial_routes_snd (time : nat) (s : natprod) (d : nat) : list natprod :=
+  if (leb (snd s) d) then partial_routes_snd_r (fst s) (snd s) d
+  else partial_routes_snd_l (fst s) (snd s) d.
 
 Eval compute in partial_routes_fst 10 (4,0) 1.
 Eval compute in partial_routes_snd 10 (1,5) 10.
@@ -395,11 +419,18 @@ Qed.
 
 (** Partial Step Property **)
 Theorem partial_step : forall (time d : nat) (s : natprod),
-  pair_minus (List.hd (0,0) (partial_routes_fst time s d)) (List.hd (0,0) (List.tl (partial_routes_fst time s d))) = 1.
-Proof.
-  intros time d s.
-  simpl. admit.
-Qed.
+  fst s < d -> pair_minus (List.hd (0,0) (partial_routes_fst time s d)) (List.hd (0,0) (List.tl (partial_routes_fst time s d))) = 1.
+Proof. (**
+  intros time d s H.
+  simpl. unfold partial_routes_fst.
+  destruct (leb (fst s) d) eqn:H1.
+  Case "fst s <= d".
+    induction d as [|d'].
+    SCase "d = O". inversion H.
+    SCase "d = S d'".
+      simpl. 
+Qed.**) 
+  Admitted.
   
 
 (** Step Property **)
@@ -413,22 +444,122 @@ Proof.
   Case "R = mesh". 
     admit.
   Case "R = torus". admit.
-Qed.
-
-Theorem partial_routing_fst : forall (time : nat) (s : natprod) (d : nat),
-  length(partial_routes_fst time s d)  = (abs_minus (fst s) d) + 1.
-Proof.
-  intros time s d.
-  destruct (le_lt_dec (fst s) d).
-  Case "fst s < d". simpl. admit. admit.
 Qed.  
 
-Theorem partial_routing_snd : forall (time : nat) (s : natprod) (d : nat),
-  length(partial_routes_snd time s d)  = (abs_minus (snd s) d) + 1.
+Theorem abs_minus_n_n : forall (m n : nat),
+  m = n -> abs_minus m n = 0.
 Proof.
   Admitted.
 
-Variable A : Type.
+Theorem abs_minus_inc : forall (m n : nat),
+  m <= n -> abs_minus m (S n) = abs_minus m n + 1.
+Proof.
+  Admitted.
+
+Theorem plus_n_n : forall (m n : nat),
+  m = 0 -> m + n = n.
+Proof.
+  Admitted.
+
+Theorem plus_same : forall (m n p : nat),
+  m = n -> m + p = n + p.
+Proof.
+  Admitted.
+
+Theorem snoc_length : forall (l : list natprod) (a : natprod),
+  length (snoc l a) = length l + 1.
+Proof.
+  Admitted.
+
+Theorem cons_length : forall (l : list natprod) (a : natprod),
+  length (cons a l) = length l + 1.
+Proof.
+  Admitted.
+
+Theorem lt_from_le : forall (m n : nat),
+  m <= n -> m <> n -> m < n.
+Proof.
+  Admitted.
+
+Theorem partial_routing_fst_r : forall (sx sy d : nat),
+  sx <= d -> length (partial_routes_fst_r sx sy d) = (abs_minus sx d) + 1.
+Proof.
+  intros sx sy d H.
+  induction d as [|d'].
+  Case "d = O".
+    apply le_n_0_eq in H. rewrite <- H. simpl. reflexivity.
+  Case "d = S d'".
+    unfold partial_routes_fst_r.
+    destruct (beq_nat sx (S d')) eqn:H0. 
+    SCase "sx = S d'". 
+      simpl. symmetry. apply plus_n_n. apply abs_minus_n_n. apply beq_nat_true in H0. apply H0.
+    SCase "sx <> S d'".
+      apply beq_nat_false in H0.
+      rewrite snoc_length. apply plus_same. rewrite abs_minus_inc. apply IHd'.
+      apply lt_from_le in H. apply lt_n_Sm_le in H. apply H. 
+      apply H0. apply lt_from_le in H. apply lt_n_Sm_le in H. apply H. apply H0.
+Qed.
+
+Theorem partial_routing_fst_l : forall (sx sy d : nat),
+  d <= sx -> length (partial_routes_fst_l sx sy d) = (abs_minus sx d) + 1.
+Proof.
+  intros sx sy d H.
+  induction sx as [|sx'].
+  Case "sx = O".
+    apply le_n_0_eq in H. rewrite <- H. simpl. reflexivity.
+  Case "sx = S sx'".
+    unfold partial_routes_fst_l.
+    destruct (beq_nat (S sx') d) eqn:H0. 
+    SCase "S sx' = d". 
+      rewrite abs_minus_theorem. simpl. symmetry. apply plus_n_n. apply abs_minus_n_n.
+      apply beq_nat_true in H0. symmetry. apply H0.
+    SCase "sx <> S d'".
+      apply beq_nat_false in H0.
+      rewrite cons_length. apply plus_same. rewrite abs_minus_theorem. rewrite abs_minus_inc. 
+      rewrite abs_minus_theorem. apply IHsx'.
+      apply lt_from_le in H. apply lt_n_Sm_le in H. apply H. apply not_eq_sym. apply H0. 
+      apply lt_from_le in H. apply lt_n_Sm_le in H. apply H. apply not_eq_sym. apply H0.
+Qed.
+
+Theorem partial_routing_snd_r : forall (sx sy d : nat),
+  sy <= d -> length (partial_routes_snd_r sx sy d) = (abs_minus sy d) + 1.
+Proof.
+  intros sx sy d H.
+  induction d as [|d'].
+  Case "d = O".
+    apply le_n_0_eq in H. rewrite <- H. simpl. reflexivity.
+  Case "d = S d'".
+    unfold partial_routes_snd_r.
+    destruct (beq_nat sy (S d')) eqn:H0. 
+    SCase "sx = S d'". 
+      simpl. symmetry. apply plus_n_n. apply abs_minus_n_n. apply beq_nat_true in H0. apply H0.
+    SCase "sx <> S d'".
+      apply beq_nat_false in H0.
+      rewrite snoc_length. apply plus_same. rewrite abs_minus_inc. apply IHd'.
+      apply lt_from_le in H. apply lt_n_Sm_le in H. apply H. 
+      apply H0. apply lt_from_le in H. apply lt_n_Sm_le in H. apply H. apply H0.
+Qed.
+
+Theorem partial_routing_snd_l : forall (sx sy d : nat),
+  d <= sy -> length (partial_routes_snd_l sx sy d) = (abs_minus sy d) + 1.
+Proof.
+  intros sx sy d H.
+  induction sy as [|sy'].
+  Case "sy = O".
+    apply le_n_0_eq in H. rewrite <- H. simpl. reflexivity.
+  Case "sy = S sy'".
+    unfold partial_routes_snd_l.
+    destruct (beq_nat (S sy') d) eqn:H0. 
+    SCase "S sy' = d". 
+      rewrite abs_minus_theorem. simpl. symmetry. apply plus_n_n. apply abs_minus_n_n.
+      apply beq_nat_true in H0. symmetry. apply H0.
+    SCase "sy <> S d'".
+      apply beq_nat_false in H0.
+      rewrite cons_length. apply plus_same. rewrite abs_minus_theorem. rewrite abs_minus_inc. 
+      rewrite abs_minus_theorem. apply IHsy'.
+      apply lt_from_le in H. apply lt_n_Sm_le in H. apply H. apply not_eq_sym. apply H0. 
+      apply lt_from_le in H. apply lt_n_Sm_le in H. apply H. apply not_eq_sym. apply H0.
+Qed.
 
 Theorem length_tl : forall (l : list natprod),
   length l > 0 -> length (tail l) = length l - 1.
@@ -463,12 +594,38 @@ Proof.
   Case "R = rin". 
     simpl. admit.
   Case "R = mesh".
-    simpl. rewrite app_length. rewrite partial_routing_fst. 
-    rewrite length_tl.
-    rewrite partial_routing_snd.
-    simpl. rewrite plus_permute_3. rewrite plus_minus_3. reflexivity.
-    rewrite partial_routing_snd. simpl. rewrite plus_comm. apply lt_plus_trans.
-    rewrite nat_compare_lt. simpl. reflexivity.
+    simpl. rewrite app_length. unfold partial_routes_fst. unfold partial_routes_snd. 
+    simpl.
+    destruct (leb (fst d) (fst s)) eqn:H0.
+      destruct (leb (snd d) (snd s)) eqn:H1.
+      SCase "1". 
+        rewrite length_tl. rewrite partial_routing_fst_r. rewrite partial_routing_snd_r.
+        rewrite plus_permute_3. rewrite plus_minus_3. reflexivity. 
+        apply leb_complete in H1. apply H1. apply leb_complete in H0. apply H0.
+        rewrite partial_routing_snd_r. rewrite plus_comm. apply lt_plus_trans.
+        rewrite nat_compare_lt. simpl. reflexivity. apply leb_complete in H1. apply H1.
+      SCase "2".
+        rewrite length_tl. rewrite partial_routing_fst_r. rewrite partial_routing_snd_l.
+        rewrite plus_permute_3. rewrite plus_minus_3. reflexivity.
+        apply leb_complete_conv in H1. apply lt_le_weak. apply H1. apply leb_complete in H0. apply H0.
+        rewrite partial_routing_snd_l. rewrite plus_comm. apply lt_plus_trans.
+        rewrite nat_compare_lt. simpl. reflexivity.
+        apply leb_complete_conv in H1. apply lt_le_weak. apply H1.
+      destruct (leb (snd d) (snd s)) eqn:H1.
+      SCase "3".
+        rewrite length_tl. rewrite partial_routing_fst_l. rewrite partial_routing_snd_r.
+        rewrite plus_permute_3. rewrite plus_minus_3. reflexivity. 
+        apply leb_complete in H1. apply H1. apply leb_complete_conv in H0. apply lt_le_weak. apply H0.
+        rewrite partial_routing_snd_r. rewrite plus_comm. apply lt_plus_trans.
+        rewrite nat_compare_lt. simpl. reflexivity. apply leb_complete in H1. apply H1.
+      SCase "4".
+        rewrite length_tl. rewrite partial_routing_fst_l. rewrite partial_routing_snd_l.
+        rewrite plus_permute_3. rewrite plus_minus_3. reflexivity.
+        apply leb_complete_conv in H1. apply lt_le_weak. apply H1.
+        apply leb_complete_conv in H0. apply lt_le_weak. apply H0.
+        rewrite partial_routing_snd_l. rewrite plus_comm. apply lt_plus_trans.
+        rewrite nat_compare_lt. simpl. reflexivity.
+        apply leb_complete_conv in H1. apply lt_le_weak. apply H1.
   Case "R = torus".
     admit.
 Qed.
