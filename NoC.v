@@ -470,11 +470,9 @@ Theorem lt_from_le : forall (m n : nat),
   m <= n -> m <> n -> m < n.
 Proof.
   intros m n H0 H1.
-  destruct (lt_eq_lt_dec m n) eqn:H2.
-    destruct s.
-    SCase "m < n". apply l.
-    SCase "m = n". congruence.
-    SCase "n < m". admit.
+  apply le_lt_eq_dec in H0.
+  destruct H0. apply l.
+  congruence.
 Qed.
 
 Theorem partial_routing_fst_r : forall (sx sy d : nat),
@@ -558,7 +556,7 @@ Proof.
 Qed.
 
 Theorem length_tl : forall (l : list natprod),
-  length l > 0 -> length (tail l) = length l - 1.
+  0 < length l -> length (tail l) = length l - 1.
 Proof.
   intros l.
   destruct l.
@@ -578,16 +576,19 @@ Proof.
   rewrite (plus_comm m p). reflexivity.
 Qed.
 
-Theorem plus_minus_3 : forall (n m : nat),
-  n + m - m = n.
+Lemma plus_n_1 : forall n : nat, S n = n + 1.
 Proof.
-  intros n m.
-  destruct n as [|n'].
-  Case "n = O". simpl. symmetry. apply minus_n_n.
-  Case "n = S n'". 
-    destruct m as [|m']. 
-    SCase "m = O". simpl. apply f_equal. symmetry. apply plus_n_O.
-    SCase "m = S m'". admit.
+ intro n; rewrite <- (plus_n_Sm n 0); auto with arith.
+Qed.
+
+Theorem plus_minus_3 : forall (n : nat),
+  n + 1 - 1 = n.
+Proof.
+  intros n.
+  induction n as [|n'].
+  Case "n = O". simpl. symmetry. reflexivity.
+  Case "n = S n'".
+    simpl. rewrite <- plus_n_1. simpl. reflexivity.
 Qed.
 
 Theorem abs_minus_trans : forall (m n : nat),
@@ -605,9 +606,70 @@ Proof.
 Qed. 
 
 Theorem nonmin_routing : forall (m n : nat) (s d : natprod) (R : noc m n),
-  length(nonmin_routes m n R d s) = nonmin_distance m n R d s + 1.
+  (fst s) <= m -> (fst d) <= m -> length(nonmin_routes m n R s d) = nonmin_distance m n R s d + 1.
 Proof.
-  Admitted.
+  intros m n s d R.
+  intros H0 H1.
+  destruct R.
+  Case "R = bus".
+    reflexivity.
+  Case "R = rin".
+    admit.
+  Case "R = mesh".
+    simpl. rewrite app_length. rewrite app_length. rewrite length_tl. rewrite length_tl.
+    unfold partial_routes_fst. unfold partial_routes_snd. simpl. 
+    apply leb_correct in H0. simpl. rewrite H0. apply le_lt_eq_dec in H1.
+    destruct (leb (snd s) (snd d)) eqn:H2.
+    SCase "leb (snd s) (snd d))".
+      destruct H1. 
+      SSCase "fst d < m". 
+        apply leb_correct_conv in l. rewrite l.
+        rewrite partial_routing_fst_r. rewrite partial_routing_snd_r. rewrite partial_routing_fst_l.
+        rewrite plus_minus_3. rewrite plus_minus_3. rewrite plus_permute_3. rewrite plus_assoc.
+        rewrite (abs_minus_theorem m (fst d)). reflexivity. apply leb_complete_conv in l.
+        apply lt_le_weak. apply l. apply leb_complete in H2. apply H2. apply leb_complete in H0. apply H0.
+      SSCase "fst d = m".
+        simpl. rewrite (leb_correct m (fst d)).
+        rewrite partial_routing_fst_r. rewrite partial_routing_snd_r. rewrite partial_routing_fst_r.
+        rewrite plus_minus_3. rewrite plus_minus_3. rewrite plus_permute_3. rewrite plus_assoc.
+        rewrite (abs_minus_theorem m (fst d)). reflexivity. rewrite e. reflexivity.
+        apply leb_complete in H2. apply H2. apply leb_complete in H0. apply H0.
+        rewrite e. reflexivity.
+    SCase "leb (snd s) (snd d))".
+      destruct H1.
+      SSCase "fst d < m".
+        apply leb_correct_conv in l. rewrite l.
+        rewrite partial_routing_fst_r. rewrite partial_routing_snd_l. rewrite partial_routing_fst_l.
+        rewrite plus_minus_3. rewrite plus_minus_3. rewrite plus_permute_3. rewrite plus_assoc.
+        rewrite (abs_minus_theorem m (fst d)). reflexivity. apply leb_complete_conv in l.
+        apply lt_le_weak. apply l. apply leb_complete_conv in H2. apply lt_le_weak. apply H2. 
+        apply leb_complete in H0. apply H0.
+      SSCase "fst d = m".
+        simpl. rewrite (leb_correct m (fst d)).
+        rewrite partial_routing_fst_r. rewrite partial_routing_snd_l. rewrite partial_routing_fst_r.
+        rewrite plus_minus_3. rewrite plus_minus_3. rewrite plus_permute_3. rewrite plus_assoc.
+        rewrite (abs_minus_theorem m (fst d)). reflexivity. rewrite e. reflexivity.
+        apply leb_complete_conv in H2. apply lt_le_weak. apply H2. 
+        apply leb_complete in H0. apply H0. rewrite e. reflexivity.
+    unfold partial_routes_fst. simpl.
+    destruct (leb m (fst d)) eqn:H2.
+    SCase "leb m (fst d)) = true".
+      rewrite partial_routing_fst_r. rewrite plus_comm. apply lt_plus_trans. rewrite nat_compare_lt.
+      simpl. reflexivity. apply leb_complete in H2. apply H2.
+    SCase "leb m (fst d)) = false".
+      rewrite partial_routing_fst_l. rewrite plus_comm. apply lt_plus_trans. rewrite nat_compare_lt.
+      simpl. reflexivity. apply H1.
+    unfold partial_routes_snd. simpl.
+    destruct (leb (snd s) (snd d)) eqn:H2.
+    SCase "leb (snd s) (snd d) = true".  
+      rewrite partial_routing_snd_r. rewrite plus_comm. apply lt_plus_trans. rewrite nat_compare_lt.
+      simpl. reflexivity. apply leb_complete in H2. apply H2.
+    SCase "leb (snd s) (snd d) = false".
+      rewrite partial_routing_snd_l. rewrite plus_comm. apply lt_plus_trans. rewrite nat_compare_lt.
+      simpl. reflexivity. apply leb_complete_conv in H2. apply lt_le_weak. apply H2.
+  Case "R = torus".
+    admit.
+Qed.
 
 (** Properties **)
 
@@ -705,6 +767,7 @@ Proof.
         assert (H: fst s - fst d <= m - fst d).
           SSCase "Proof of assertion". apply minus_le_compat_r.
         assumption. apply le_plus_trans. apply H. apply H1. apply H0. apply lt_le_weak. apply l.
+        apply H0. apply H1.
   Case "R = torus".
     admit.
 Qed.
