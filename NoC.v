@@ -417,35 +417,6 @@ Proof.
     rewrite (tor_minus_theorem (snd s) (snd d) n). reflexivity.
 Qed.
 
-(** Partial Step Property **)
-Theorem partial_step : forall (time d : nat) (s : natprod),
-  fst s < d -> pair_minus (List.hd (0,0) (partial_routes_fst time s d)) (List.hd (0,0) (List.tl (partial_routes_fst time s d))) = 1.
-Proof. (**
-  intros time d s H.
-  simpl. unfold partial_routes_fst.
-  destruct (leb (fst s) d) eqn:H1.
-  Case "fst s <= d".
-    induction d as [|d'].
-    SCase "d = O". inversion H.
-    SCase "d = S d'".
-      simpl. 
-Qed.**) 
-  Admitted.
-  
-
-(** Step Property **)
-Theorem step_property : forall (m n : nat) (s d : natprod) (R : noc m n),
-  pair_minus (List.hd (0,0) (min_routes m n R s d)) (List.hd (0,0) (List.tl (min_routes m n R s d))) = 1.
-Proof.
-  intros m n s d R.
-  destruct R.
-  Case "R = bus". admit.
-  Case "R = rin". admit.
-  Case "R = mesh". 
-    admit.
-  Case "R = torus". admit.
-Qed.  
-
 Theorem abs_minus_n_n : forall (m n : nat),
   m = n -> abs_minus m n = 0.
 Proof.
@@ -647,7 +618,7 @@ Proof.
   destruct R.
   Case "R = bus". simpl. reflexivity.
   Case "R = rin". 
-    simpl. admit.
+    admit.
   Case "R = mesh".
     simpl. rewrite app_length. unfold partial_routes_fst. unfold partial_routes_snd. 
     simpl.
@@ -685,11 +656,6 @@ Proof.
     admit.
 Qed.
 
-Theorem nonmin_routing : forall (m n : nat) (s d : natprod) (R : noc m n),
-  length(nonmin_routes m n R d s) = nonmin_distance m n R d s + 1.
-Proof.
-  Admitted.
-
 Theorem abs_minus_trans : forall (m n : nat),
   m <= n -> abs_minus m n = n - m.
 Proof.
@@ -714,7 +680,7 @@ Proof.
   Case "R = bus". 
     simpl. reflexivity.
   Case "R = rin".
-    unfold min_power. rewrite -> min_routing. admit.
+    admit.
   Case "R = mesh".
     unfold min_power. rewrite min_routing.
     unfold nonmin_power. rewrite nonmin_routing. 
