@@ -449,37 +449,82 @@ Qed.
 Theorem abs_minus_n_n : forall (m n : nat),
   m = n -> abs_minus m n = 0.
 Proof.
-  Admitted.
+  intros m.
+  unfold abs_minus.
+  induction m as [|m'].
+  Case "m = O". intros n H. symmetry. apply H.
+  Case "m = S m'". 
+    intros n H. destruct n as [|n'].
+    SCase "n = O". apply H.
+    SCase "n = S n'". 
+      apply IHm'. inversion H. reflexivity.
+Qed.  
 
 Theorem abs_minus_inc : forall (m n : nat),
   m <= n -> abs_minus m (S n) = abs_minus m n + 1.
 Proof.
-  Admitted.
+  intros m.
+  unfold abs_minus.
+  induction m as [|m'].
+  Case "m = O". intros n H. rewrite plus_comm. simpl. reflexivity.
+  Case "m = S m'".
+    intros n H. destruct n as [|n'].
+    SCase "n = O". inversion H.
+    SCase "n = S n'". 
+      apply IHm'. apply le_S_n in H. apply H.
+Qed.
 
 Theorem plus_n_n : forall (m n : nat),
   m = 0 -> m + n = n.
 Proof.
-  Admitted.
+  intros m n H.
+  destruct m as [|m'].
+  Case "m = O". simpl. reflexivity.
+  Case "m = Sm'". inversion H.
+Qed.
 
 Theorem plus_same : forall (m n p : nat),
   m = n -> m + p = n + p.
 Proof.
-  Admitted.
+  intros m n p.
+  generalize dependent n.
+  induction m as [|m'].
+  Case "m = O". intros n H. rewrite H. reflexivity.
+  Case "m = S m'". 
+    intros n H.
+    destruct n as [|n'].
+    SCase "n = O". inversion H.
+    SCase "n = S n'". rewrite H. reflexivity.
+Qed.
 
 Theorem snoc_length : forall (l : list natprod) (a : natprod),
   length (snoc l a) = length l + 1.
 Proof.
-  Admitted.
+  intros l a.
+  induction l.
+  SCase "l = nil". simpl. reflexivity.
+  SCase "l = h::t". simpl. rewrite IHl. reflexivity.
+Qed.
 
 Theorem cons_length : forall (l : list natprod) (a : natprod),
   length (cons a l) = length l + 1.
 Proof.
-  Admitted.
+  intros l a.
+  destruct l as [|a0 l'].
+  SCase "l = nil". simpl. reflexivity.
+  SCase "l = h::t". simpl. apply f_equal. rewrite plus_comm. simpl. reflexivity.
+Qed.
 
 Theorem lt_from_le : forall (m n : nat),
   m <= n -> m <> n -> m < n.
 Proof.
-  Admitted.
+  intros m n H0 H1.
+  destruct (lt_eq_lt_dec m n) eqn:H2.
+    destruct s.
+    SCase "m < n". apply l.
+    SCase "m = n". congruence.
+    SCase "n < m". admit.
+Qed.
 
 Theorem partial_routing_fst_r : forall (sx sy d : nat),
   sx <= d -> length (partial_routes_fst_r sx sy d) = (abs_minus sx d) + 1.
@@ -577,13 +622,23 @@ Qed.
 Theorem plus_permute_3 : forall (n m p : nat),
   n + m + p = n + p + m.
 Proof.
-  Admitted.
+  intros n m p.
+  rewrite <- plus_assoc. rewrite <- plus_assoc.
+  rewrite (plus_comm m p). reflexivity.
+Qed.
 
 Theorem plus_minus_3 : forall (n m : nat),
   n + m - m = n.
 Proof.
-  Admitted.
-
+  intros n m.
+  destruct n as [|n'].
+  Case "n = O". simpl. symmetry. apply minus_n_n.
+  Case "n = S n'". 
+    destruct m as [|m']. 
+    SCase "m = O". simpl. apply f_equal. symmetry. apply plus_n_O.
+    SCase "m = S m'". admit.
+Qed.
+ 
 (** Minimum Routing **)
 Theorem min_routing : forall (m n : nat) (s d : natprod) (R : noc m n),
   length(min_routes m n R d s)  = distance m n R d s + 1.
@@ -638,7 +693,16 @@ Proof.
 Theorem abs_minus_trans : forall (m n : nat),
   m <= n -> abs_minus m n = n - m.
 Proof.
-  Admitted.
+  intros m.
+  unfold abs_minus.
+  induction m as [|m'].
+  Case "m = O". intros n H. apply minus_n_O.
+  Case "m = S m'". 
+    intros n H.
+    destruct n as [|n'].
+    SCase "n = O". inversion H.
+    SCase "n = S n'". simpl. rewrite IHm'. reflexivity. apply le_S_n. apply H.
+Qed. 
 
 (** Minimal Power **)
 Theorem power_comp : forall (m n : nat) (R : noc m n) (s d : natprod) (r : nat),
