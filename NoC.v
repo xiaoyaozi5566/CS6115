@@ -83,8 +83,8 @@ Definition distance (m n : nat) (R : noc m n) (s d : natprod): nat :=
     | torus m n => tor_minus (fst s) (fst d) m + tor_minus (snd s) (snd d) n
   end.
 
+(** tests for distance **)
 Eval compute in distance 0 4 (rin) (1,0) (4,0).
-
 Eval compute in distance 5 5 (torus) (4,4) (1,1).
 
 Inductive dataflow : Type :=
@@ -99,6 +99,7 @@ Fixpoint snoc (l: list natprod) (v:natprod) : list natprod :=
   | h :: t => h :: (snoc t v)
   end.
 
+(** partial routes functions for one dimension route **)
 Fixpoint partial_routes_fst_r (sx : nat) (sy : nat) (d : nat) : list natprod :=
   match d with
     | O => cons (sx, sy) nil
@@ -135,9 +136,11 @@ Definition partial_routes_snd (time : nat) (s : natprod) (d : nat) : list natpro
   if (leb (snd s) d) then partial_routes_snd_r (fst s) (snd s) d
   else partial_routes_snd_l (fst s) (snd s) d.
 
+(** tests for partial routes **)
 Eval compute in partial_routes_fst 10 (4,0) 1.
 Eval compute in partial_routes_snd 10 (1,5) 10.
 
+(** minimum routing **)
 Definition min_routes (m n : nat) (R : noc m n) (s d : natprod) : list natprod :=
   match R with
     | bus => cons s (cons d nil)
@@ -209,6 +212,7 @@ Eval compute in min_routes 5 5 torus (2,4) (1,2).
 Eval compute in min_routes 5 5 torus (2,4) (1,5).
 Eval compute in min_routes 5 5 torus (2,4) (5,5).
 
+(** non-minimum routing **)
 Definition nonmin_routes (m n : nat) (R : noc m n) (s d : natprod) : list natprod :=
   match R with
     | bus => cons s (cons d nil)
@@ -248,6 +252,7 @@ Eval compute in nonmin_routes 5 5 torus (2,4) (1,2).
 Eval compute in nonmin_routes 5 5 torus (2,4) (1,5).
 Eval compute in nonmin_routes 5 5 torus (2,4) (5,5).
 
+(** power functions **)
 Definition min_power (m n : nat) (R : noc m n) (df : dataflow) : nat :=
   match df with
     | _dataflow s d r => (length (min_routes m n R s d) - 1) * r
@@ -263,11 +268,9 @@ Definition nonmin_power (m n : nat) (R : noc m n) (df : dataflow) : nat :=
     | _dataflow s d r => (length (nonmin_routes m n R s d) - 1) * r
   end.
 
+(** non-deterministic routing **)
 CoFixpoint repeat (a:bool) : Stream bool :=
 Cons a (repeat (negb a)).
-
-Eval compute in repeat true.
-Eval compute in hd (tl (repeat true)).
 
 Definition ref_stream := repeat true.
 
@@ -343,9 +346,7 @@ Eval compute in (nondet_routes 5 5 2 mesh (1,2) (4,3)).
 Eval compute in (nondet_routes 5 5 1 torus (1,2) (4,4)).
 Eval compute in (nondet_routes 5 5 2 torus (1,2) (4,4)).
 
-Eval compute in (List.length (min_routes 5 5 mesh (1,2) (4,4))).
-Eval compute in (List.length nil).
-
+(** mapping function **)
 Fixpoint mapping (m n : nat) (R : noc m n) (dfs : list dataflow) (l : nat) : list (list natprod) :=
   match l with
     | O => nil
@@ -354,15 +355,12 @@ Fixpoint mapping (m n : nat) (R : noc m n) (dfs : list dataflow) (l : nat) : lis
               end
   end.
 
+(** tests for mapping **)
 Definition dataflows := cons (_dataflow (1,1) (3,3) 10) (cons (_dataflow (2,2) (4,4) 20) nil).
 
 Eval compute in (mapping 5 5 mesh dataflows 2).
 
-Definition pair_minus (s d : natprod): nat :=
-  (abs_minus (fst s) (fst d)) + (abs_minus (snd s) (snd d)).
-
-(** Properties **)
-
+(** Lemmas **)
 Theorem abs_minus_theorem : forall (m n : nat),
   abs_minus m n = abs_minus n m.
 Proof.
@@ -397,24 +395,6 @@ Proof.
       rewrite (abs_minus_theorem s d). reflexivity.
       apply lt_le_weak in l. apply l.  apply lt_le_weak in l. apply l. 
       apply lt_le_weak in l. apply l.  apply lt_le_weak in l. apply l.
-Qed.
- 
-(** Distance Commutativity **)
-Theorem distance_comm : forall (m n : nat) (s d : natprod) (R : noc m n),
-  distance m n R s d = distance m n R d s.
-Proof.
-  intros m n s d R.
-  destruct R.
-  Case "R = bus". 
-    reflexivity.
-  Case "R = rin".
-    simpl. apply tor_minus_theorem.
-  Case "R = mesh".
-    simpl. rewrite (abs_minus_theorem (fst s) (fst d)). 
-    rewrite (abs_minus_theorem (snd s) (snd d)). reflexivity.
-  Case "R = torus".
-    simpl. rewrite (tor_minus_theorem (fst s) (fst d) m).
-    rewrite (tor_minus_theorem (snd s) (snd d) n). reflexivity.
 Qed.
 
 Theorem abs_minus_n_n : forall (m n : nat),
@@ -609,6 +589,45 @@ Proof.
     SCase "m = O". simpl. apply f_equal. symmetry. apply plus_n_O.
     SCase "m = S m'". admit.
 Qed.
+
+Theorem abs_minus_trans : forall (m n : nat),
+  m <= n -> abs_minus m n = n - m.
+Proof.
+  intros m.
+  unfold abs_minus.
+  induction m as [|m'].
+  Case "m = O". intros n H. apply minus_n_O.
+  Case "m = S m'". 
+    intros n H.
+    destruct n as [|n'].
+    SCase "n = O". inversion H.
+    SCase "n = S n'". simpl. rewrite IHm'. reflexivity. apply le_S_n. apply H.
+Qed. 
+
+Theorem nonmin_routing : forall (m n : nat) (s d : natprod) (R : noc m n),
+  length(nonmin_routes m n R d s) = nonmin_distance m n R d s + 1.
+Proof.
+  Admitted.
+
+(** Properties **)
+
+(** Distance Commutativity **)
+Theorem distance_comm : forall (m n : nat) (s d : natprod) (R : noc m n),
+  distance m n R s d = distance m n R d s.
+Proof.
+  intros m n s d R.
+  destruct R.
+  Case "R = bus". 
+    reflexivity.
+  Case "R = rin".
+    simpl. apply tor_minus_theorem.
+  Case "R = mesh".
+    simpl. rewrite (abs_minus_theorem (fst s) (fst d)). 
+    rewrite (abs_minus_theorem (snd s) (snd d)). reflexivity.
+  Case "R = torus".
+    simpl. rewrite (tor_minus_theorem (fst s) (fst d) m).
+    rewrite (tor_minus_theorem (snd s) (snd d) n). reflexivity.
+Qed.
  
 (** Minimum Routing **)
 Theorem min_routing : forall (m n : nat) (s d : natprod) (R : noc m n),
@@ -655,20 +674,6 @@ Proof.
   Case "R = torus".
     admit.
 Qed.
-
-Theorem abs_minus_trans : forall (m n : nat),
-  m <= n -> abs_minus m n = n - m.
-Proof.
-  intros m.
-  unfold abs_minus.
-  induction m as [|m'].
-  Case "m = O". intros n H. apply minus_n_O.
-  Case "m = S m'". 
-    intros n H.
-    destruct n as [|n'].
-    SCase "n = O". inversion H.
-    SCase "n = S n'". simpl. rewrite IHm'. reflexivity. apply le_S_n. apply H.
-Qed. 
 
 (** Minimal Power **)
 Theorem power_comp : forall (m n : nat) (R : noc m n) (s d : natprod) (r : nat),
